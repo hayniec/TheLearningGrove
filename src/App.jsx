@@ -127,6 +127,55 @@ export default function App() {
     }
   };
 
+  // Curriculum Filtering Logic
+  const filteredCurricula = curricula.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesSubject = selectedSubjects.length === 0 || selectedSubjects.includes(item.subject);
+    const matchesDelivery = selectedDeliveries.length === 0 || selectedDeliveries.includes(item.delivery);
+    const matchesCost = selectedCosts.length === 0 || selectedCosts.includes(item.cost);
+    const matchesWorldview = selectedWorldviews.length === 0 || selectedWorldviews.includes(item.worldview);
+    const matchesMethod = selectedMethodologies.length === 0 || selectedMethodologies.includes(item.methodology);
+    const matchesGrade = selectedGrades.length === 0 || 
+                         (item.gradeLevels && item.gradeLevels.some(g => selectedGrades.includes(g)));
+
+    const matchesOnlineRes = !featuresFilter.onlineResources || item.onlineResources;
+    const matchesSelfPaced = !featuresFilter.selfPaced || item.selfPaced;
+    const matchesParticipation = !featuresFilter.classParticipation || item.classParticipation;
+    const matchesVideos = !featuresFilter.videos || item.videos;
+
+    return matchesSearch && matchesSubject && matchesDelivery && matchesCost && 
+           matchesWorldview && matchesMethod && matchesOnlineRes && matchesSelfPaced &&            matchesParticipation && matchesVideos && matchesGrade;
+  });
+
+  // Field Trip Filtering Logic
+  const filteredFieldTrips = fieldTrips.filter(item => {
+    const matchesSearch = tripSearchQuery.trim() === '' || 
+                          item.name.toLowerCase().includes(tripSearchQuery.toLowerCase()) || 
+                          item.description.toLowerCase().includes(tripSearchQuery.toLowerCase()) ||
+                          (item.location && item.location.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
+                          (item.city && item.city.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
+                          (item.state && item.state.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
+                          (item.zip && item.zip.toLowerCase().includes(tripSearchQuery.toLowerCase()));
+
+    const matchesSubject = tripSelectedSubject === 'All' || item.subject === tripSelectedSubject;
+
+    let matchesGrade = true;
+    if (tripSelectedGrade !== 'All') {
+      const rec = (item.gradeRecommendation || '').toLowerCase();
+      if (tripSelectedGrade === 'Elementary') {
+        matchesGrade = rec.includes('elementary') || rec.includes('all') || rec.includes('k-') || rec.includes('all grades');
+      } else if (tripSelectedGrade === 'Middle') {
+        matchesGrade = rec.includes('middle') || rec.includes('all') || rec.includes('all grades');
+      } else if (tripSelectedGrade === 'High') {
+        matchesGrade = rec.includes('high') || rec.includes('all') || rec.includes('all grades');
+      }
+    }
+
+    return matchesSearch && matchesSubject && matchesGrade;
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -398,54 +447,7 @@ export default function App() {
     });
   };
 
-  // Curriculum Filtering Logic
-  const filteredCurricula = curricula.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesSubject = selectedSubjects.length === 0 || selectedSubjects.includes(item.subject);
-    const matchesDelivery = selectedDeliveries.length === 0 || selectedDeliveries.includes(item.delivery);
-    const matchesCost = selectedCosts.length === 0 || selectedCosts.includes(item.cost);
-    const matchesWorldview = selectedWorldviews.length === 0 || selectedWorldviews.includes(item.worldview);
-    const matchesMethod = selectedMethodologies.length === 0 || selectedMethodologies.includes(item.methodology);
-    const matchesGrade = selectedGrades.length === 0 || 
-                         (item.gradeLevels && item.gradeLevels.some(g => selectedGrades.includes(g)));
 
-    const matchesOnlineRes = !featuresFilter.onlineResources || item.onlineResources;
-    const matchesSelfPaced = !featuresFilter.selfPaced || item.selfPaced;
-    const matchesParticipation = !featuresFilter.classParticipation || item.classParticipation;
-    const matchesVideos = !featuresFilter.videos || item.videos;
-
-    return matchesSearch && matchesSubject && matchesDelivery && matchesCost && 
-           matchesWorldview && matchesMethod && matchesOnlineRes && matchesSelfPaced &&            matchesParticipation && matchesVideos && matchesGrade;
-  });
-
-  // Field Trip Filtering Logic
-  const filteredFieldTrips = fieldTrips.filter(item => {
-    const matchesSearch = tripSearchQuery.trim() === '' || 
-                          item.name.toLowerCase().includes(tripSearchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(tripSearchQuery.toLowerCase()) ||
-                          (item.location && item.location.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
-                          (item.city && item.city.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
-                          (item.state && item.state.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
-                          (item.zip && item.zip.toLowerCase().includes(tripSearchQuery.toLowerCase()));
-
-    const matchesSubject = tripSelectedSubject === 'All' || item.subject === tripSelectedSubject;
-
-    let matchesGrade = true;
-    if (tripSelectedGrade !== 'All') {
-      const rec = (item.gradeRecommendation || '').toLowerCase();
-      if (tripSelectedGrade === 'Elementary') {
-        matchesGrade = rec.includes('elementary') || rec.includes('all') || rec.includes('k-') || rec.includes('all grades');
-      } else if (tripSelectedGrade === 'Middle') {
-        matchesGrade = rec.includes('middle') || rec.includes('all') || rec.includes('all grades');
-      } else if (tripSelectedGrade === 'High') {
-        matchesGrade = rec.includes('high') || rec.includes('all') || rec.includes('all grades');
-      }
-    }
-
-    return matchesSearch && matchesSubject && matchesGrade;
-  });
 
   return (
     <div className="app-container">
