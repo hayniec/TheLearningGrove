@@ -10,7 +10,17 @@ import {
   getBusinessAds,
   addBusinessAd,
   getResources,
-  addResource
+  addResource,
+  getPosts,
+  addPost,
+  getUserByEmail,
+  createUser,
+  getSubUsers,
+  createSubUser,
+  getPendingResources,
+  approveResource,
+  rejectResource,
+  hashPassword
 } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -101,6 +111,155 @@ app.post('/api/resources', async (req, res) => {
   } catch (err) {
     console.error("POST /api/resources error: ", err);
     res.status(500).json({ error: "Failed to save resource" });
+  }
+});
+
+app.get('/api/posts', async (req, res) => {
+  try {
+    const list = await getPosts();
+    res.json(list);
+  } catch (err) {
+    console.error("GET /api/posts error: ", err);
+    res.status(500).json({ error: "Failed to fetch community posts" });
+  }
+});
+
+app.post('/api/posts', async (req, res) => {
+  try {
+    const newItem = await addPost(req.body);
+    res.status(201).json(newItem);
+  } catch (err) {
+    console.error("POST /api/posts error: ", err);
+    res.status(500).json({ error: "Failed to save community post" });
+  }
+});
+
+// Authentication & Session Endpoints
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: "Missing required fields: email, password, name" });
+    }
+
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      return res.status(400).json({ error: "User with this email already exists" });
+    }
+
+    const newUser = await createUser({
+      email,
+      password,
+      name,
+      role: 'Parent',
+      parentId: null
+    });
+
+    const { password: _, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
+  } catch (err) {
+    console.error("POST /api/auth/register error:", err);
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Missing email or password" });
+    }
+
+    const user = await getUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const hashed = hashPassword(password);
+    if (user.password !== hashed) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (err) {
+    console.error("POST /api/auth/login error:", err);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// Sub-user (Family) Endpoints
+app.get('/api/users/:id/subusers', async (req, res) => {
+  try {
+    const list = await getSubUsers(req.params.id);
+    res.json(list);
+  } catch (err) {
+    console.error("GET /api/users/:id/subusers error:", err);
+    res.status(500).json({ error: "Failed to fetch subusers" });
+  }
+});
+
+app.post('/api/users/:id/subusers', async (req, res) => {
+  try {
+    const { email, password, name, role } = req.body;
+    if (!email || !password || !name || !role) {
+      return res.status(400).json({ error: "Missing required fields for subuser" });
+    }
+
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      return res.status(400).json({ error: "User with this email already exists" });
+    }
+
+    const newSub = await createSubUser(req.params.id, {
+      email,
+      password,
+      name,
+      role
+    });
+
+    const { password: _, ...subWithoutPassword } = newSub;
+    res.status(201).json(subWithoutPassword);
+  } catch (err) {
+    console.error("POST /api/users/:id/subusers error:", err);
+    res.status(500).json({ error: "Failed to create subuser" });
+  }
+});
+
+// Resource Moderation Endpoints
+app.get('/api/resources/pending', async (req, res) => {
+  try {
+    const list = await getPendingResources();
+    res.json(list);
+  } catch (err) {
+    console.error("GET /api/resources/pending error:", err);
+    res.status(500).json({ error: "Failed to fetch pending resources" });
+  }
+});
+
+app.post('/api/resources/:id/approve', async (req, res) => {
+  try {
+    const approved = await approveResource(req.params.id);
+    if (!approved) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+    res.json(approved);
+  } catch (err) {
+    console.error("POST /api/resources/:id/approve error:", err);
+    res.status(500).json({ error: "Failed to approve resource" });
+  }
+});
+
+app.post('/api/resources/:id/reject', async (req, res) => {
+  try {
+    const rejected = await rejectResource(req.params.id);
+    if (!rejected) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+    res.json(rejected);
+  } catch (err) {
+    console.error("POST /api/resources/:id/reject error:", err);
+    res.status(500).json({ error: "Failed to reject resource" });
   }
 });
 

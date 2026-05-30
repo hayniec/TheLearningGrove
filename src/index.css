@@ -269,6 +269,7 @@ button, input, select, textarea {
   align-items: center;
   gap: 1.25rem;
   transition: var(--transition-smooth);
+  cursor: pointer;
 }
 
 .stat-card:hover {
@@ -1240,5 +1241,98 @@ button, input, select, textarea {
 
 .leaflet-popup-content {
   margin: 12px !important;
+}
+
+/* Community Forum & Message Board Styles */
+.community-board-container {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 2rem;
+}
+
+@media(max-width: 900px) {
+  .community-board-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.post-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.25rem;
+  transition: var(--transition-smooth);
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent-sage);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.post-title {
+  font-size: 1.35rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  margin: 0;
+}
+
+.post-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px dashed var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.post-content {
+  font-size: 0.95rem;
+  color: var(--color-text-dark);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Category Badge Colors */
+.badge-category {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-general {
+  background-color: var(--color-accent-sage-light);
+  color: var(--color-primary);
+}
+
+.badge-questions {
+  background-color: #e0f2f1; /* Pale teal */
+  color: #004d40;
+}
+
+.badge-advice {
+  background-color: var(--color-accent-oak-light);
+  color: var(--color-accent-oak);
+}
+
+.badge-meetups {
+  background-color: #efebe9; /* Warm brown-grey */
+  color: #4e342e;
 }
 

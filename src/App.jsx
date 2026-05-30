@@ -33,11 +33,25 @@ const ExternalLinkIcon = () => (
 const PlusIcon = () => (
   <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
 );
+const BusinessIcon = () => (
+  <svg viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+);
 
 export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [communitySubTab, setCommunitySubTab] = useState('trips'); // 'trips' or 'ads'
+
+  // Community Forum State
+  const [posts, setPosts] = useState([]);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [newPost, setNewPost] = useState({ author: '', title: '', content: '', category: 'General' });
+  const [postSearchQuery, setPostSearchQuery] = useState('');
+  const [selectedPostCategory, setSelectedPostCategory] = useState('All');
+
+  // Business Board State
+  const [adSearchQuery, setAdSearchQuery] = useState('');
+  const [selectedAdCategory, setSelectedAdCategory] = useState('All');
+  const [adSelectedType, setAdSelectedType] = useState('All');
 
   // DB Data States
   const [curricula, setCurricula] = useState([]);
@@ -47,6 +61,18 @@ export default function App() {
 
   // Stats Counters
   const [stats, setStats] = useState({ curricula: 0, trips: 0, ads: 0, resources: 0 });
+
+  // User Auth & Session States
+  const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('grove_user') || 'null'));
+  const [subUsers, setSubUsers] = useState([]);
+  const [pendingResources, setPendingResources] = useState([]);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+  const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
+  const [newSubUserForm, setNewSubUserForm] = useState({ email: '', password: '', name: '', role: 'Student' });
+  const [showResourceModal, setShowResourceModal] = useState(false);
+  const [newResource, setNewResource] = useState({ name: '', subject: 'Math', cost: 'free', link: '', description: '', type: 'website' });
+  const [showModQueue, setShowModQueue] = useState(false);
 
   // Modal States
   const [showCurriculumModal, setShowCurriculumModal] = useState(false);
@@ -66,8 +92,8 @@ export default function App() {
     city: '', state: '', zip: '', websiteUrl: ''
   });
   const [newAd, setNewAd] = useState({
-    owner: '', businessName: '', description: '', category: 'Tutoring & Classes',
-    contact: '', link: ''
+    owner: '', businessName: '', description: '', category: 'Cottage Industries',
+    businessType: '', contact: '', link: ''
   });
 
   // Filter States (Field Trips)
@@ -104,17 +130,19 @@ export default function App() {
   // Fetch Data from Server
   const fetchData = async () => {
     try {
-      const [currRes, tripRes, adRes, resRes] = await Promise.all([
+      const [currRes, tripRes, adRes, resRes, postRes] = await Promise.all([
         fetch('/api/curricula').then(r => r.json()),
         fetch('/api/fieldtrips').then(r => r.json()),
         fetch('/api/businessads').then(r => r.json()),
-        fetch('/api/resources').then(r => r.json())
+        fetch('/api/resources').then(r => r.json()),
+        fetch('/api/posts').then(r => r.json())
       ]);
 
       setCurricula(currRes);
       setFieldTrips(tripRes);
       setBusinessAds(adRes);
       setResources(resRes);
+      setPosts(postRes);
 
       setStats({
         curricula: currRes.length,
@@ -176,15 +204,68 @@ export default function App() {
     return matchesSearch && matchesSubject && matchesGrade;
   });
 
+  // Business Ads Filtering Logic
+  const filteredBusinessAds = businessAds.filter(item => {
+    const matchesSearch = adSearchQuery.trim() === '' || 
+                          item.businessName.toLowerCase().includes(adSearchQuery.toLowerCase()) || 
+                          item.description.toLowerCase().includes(adSearchQuery.toLowerCase()) ||
+                          item.owner.toLowerCase().includes(adSearchQuery.toLowerCase()) ||
+                          (item.businessType && item.businessType.toLowerCase().includes(adSearchQuery.toLowerCase()));
+                          
+    const matchesCategory = selectedAdCategory === 'All' || item.category === selectedAdCategory;
+    const matchesType = adSelectedType === 'All' || item.businessType === adSelectedType;
+    
+    return matchesSearch && matchesCategory && matchesType;
+  });
+
+  // Community Forum Filtering Logic
+  const filteredPosts = posts.filter(item => {
+    const matchesSearch = postSearchQuery.trim() === '' || 
+                          item.title.toLowerCase().includes(postSearchQuery.toLowerCase()) || 
+                          item.content.toLowerCase().includes(postSearchQuery.toLowerCase()) ||
+                          item.author.toLowerCase().includes(postSearchQuery.toLowerCase());
+                          
+    const matchesCategory = selectedPostCategory === 'All' || item.category === selectedPostCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fetch subusers and pending resources based on login status
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('grove_user', JSON.stringify(currentUser));
+      if (currentUser.role === 'Parent') {
+        fetch(`/api/users/${currentUser.id}/subusers`)
+          .then(r => r.json())
+          .then(data => setSubUsers(data))
+          .catch(err => console.error("Error fetching subusers:", err));
+      } else {
+        setSubUsers([]);
+      }
+      if (currentUser.role === 'Moderator') {
+        fetch('/api/resources/pending')
+          .then(r => r.json())
+          .then(data => setPendingResources(data))
+          .catch(err => console.error("Error fetching pending resources:", err));
+      } else {
+        setPendingResources([]);
+      }
+    } else {
+      localStorage.removeItem('grove_user');
+      setSubUsers([]);
+      setPendingResources([]);
+    }
+  }, [currentUser]);
 
   // Leaflet Map integration hook
   useEffect(() => {
     let map = null;
     
-    if (activeTab === 'community' && communitySubTab === 'trips' && filteredFieldTrips.length > 0) {
+    if (activeTab === 'fieldtrips' && filteredFieldTrips.length > 0) {
       const mapContainer = document.getElementById('field-trip-map');
       if (mapContainer && window.L) {
         // Clean up previous map if any
@@ -233,7 +314,7 @@ export default function App() {
         }
       }
     };
-  }, [activeTab, communitySubTab, filteredFieldTrips]);
+  }, [activeTab, filteredFieldTrips]);
 
   // Bind trip viewer helper to window for Leaflet popups
   useEffect(() => {
@@ -272,7 +353,7 @@ export default function App() {
     if (!newCurriculum.name || !newCurriculum.description) return alert("Please fill out Name and Description.");
     
     try {
-      const payload = { ...newCurriculum, gradeLevels: gradeLevelsSelected };
+      const payload = { ...newCurriculum, gradeLevels: gradeLevelsSelected, userId: currentUser ? currentUser.id : 'parent-1' };
       const res = await fetch('/api/curricula', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -336,7 +417,7 @@ export default function App() {
     }
 
     try {
-      const payload = { ...newTrip, lat, lng };
+      const payload = { ...newTrip, lat, lng, userId: currentUser ? currentUser.id : 'parent-1' };
       const res = await fetch('/api/fieldtrips', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -358,26 +439,193 @@ export default function App() {
 
   const handleAdSubmit = async (e) => {
     e.preventDefault();
-    if (!newAd.businessName || !newAd.owner || !newAd.description || !newAd.contact) {
-      return alert("Please fill out Business Name, Owner, Contact, and Description.");
+    if (!newAd.businessName || !newAd.owner || !newAd.description || !newAd.contact || !newAd.businessType) {
+      return alert("Please fill out Business Name, Owner, Contact, Business Type, and Description.");
     }
 
     try {
       const res = await fetch('/api/businessads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAd)
+        body: JSON.stringify({ ...newAd, userId: currentUser ? currentUser.id : 'parent-1' })
       });
       if (res.ok) {
         setShowAdModal(false);
         setNewAd({
-          owner: '', businessName: '', description: '', category: 'Tutoring & Classes',
-          contact: '', link: ''
+          owner: '', businessName: '', description: '', category: 'Cottage Industries',
+          businessType: '', contact: '', link: ''
         });
         fetchData();
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePostSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPost.title || !newPost.author || !newPost.content) {
+      return alert("Please fill out Title, Author/Your Name, and Post Content.");
+    }
+
+    try {
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newPost, userId: currentUser ? currentUser.id : 'parent-1' })
+      });
+      if (res.ok) {
+        setShowPostModal(false);
+        setNewPost({
+          author: '', title: '', content: '', category: 'General'
+        });
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    if (authMode === 'login') {
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: authForm.email, password: authForm.password })
+        });
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser(user);
+          setShowAuthModal(false);
+          setAuthForm({ email: '', password: '', name: '' });
+          fetchData();
+        } else {
+          const err = await res.json();
+          alert(err.error || "Login failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Login failed");
+      }
+    } else {
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(authForm)
+        });
+        if (res.ok) {
+          const user = await res.json();
+          setCurrentUser(user);
+          setShowAuthModal(false);
+          setAuthForm({ email: '', password: '', name: '' });
+          fetchData();
+        } else {
+          const err = await res.json();
+          alert(err.error || "Registration failed");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Registration failed");
+      }
+    }
+  };
+
+  const handleNewSubUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser || currentUser.role !== 'Parent') return;
+
+    try {
+      const res = await fetch(`/api/users/${currentUser.id}/subusers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSubUserForm)
+      });
+      if (res.ok) {
+        const newSub = await res.json();
+        setSubUsers(prev => [...prev, newSub]);
+        setNewSubUserForm({ email: '', password: '', name: '', role: 'Student' });
+        alert("Child profile added successfully!");
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to create child profile");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create child profile");
+    }
+  };
+
+  const handleApproveResource = async (id) => {
+    try {
+      const res = await fetch(`/api/resources/${id}/approve`, { method: 'POST' });
+      if (res.ok) {
+        setPendingResources(prev => prev.filter(r => r.id !== id));
+        fetchData();
+      } else {
+        alert("Failed to approve resource");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectResource = async (id) => {
+    if (!confirm("Are you sure you want to reject and delete this resource?")) return;
+    try {
+      const res = await fetch(`/api/resources/${id}/reject`, { method: 'POST' });
+      if (res.ok) {
+        setPendingResources(prev => prev.filter(r => r.id !== id));
+      } else {
+        alert("Failed to reject resource");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleResourceSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      alert("You must be logged in to submit resources.");
+      return;
+    }
+    if (!newResource.name || !newResource.link || !newResource.description) {
+      alert("Please fill out all fields.");
+      return;
+    }
+
+    try {
+      const payload = {
+        ...newResource,
+        userId: currentUser.id,
+        approved: currentUser.role === 'Moderator'
+      };
+
+      const res = await fetch('/api/resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setShowResourceModal(false);
+        setNewResource({ name: '', subject: 'Math', cost: 'free', link: '', description: '', type: 'website' });
+        if (currentUser.role === 'Moderator') {
+          alert("Resource published successfully!");
+        } else {
+          alert("Resource submitted successfully! It will appear once approved by a moderator.");
+        }
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to submit resource");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit resource");
     }
   };
 
@@ -449,6 +697,8 @@ export default function App() {
 
 
 
+  const uniqueBusinessTypes = ['All', ...new Set(businessAds.map(ad => ad.businessType).filter(Boolean))];
+
   return (
     <div className="app-container">
       {/* LEFT SIDEBAR (morphs to bottom bar on mobile) */}
@@ -459,6 +709,81 @@ export default function App() {
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
             </svg>
             <span className="brand-name">The Learning Grove</span>
+          </div>
+
+          {/* USER PROFILE SECTION */}
+          <div style={{ padding: '0.75rem 1rem', background: 'var(--color-primary-light)', margin: '0 1rem 1rem 1rem', borderRadius: '8px', border: '1px solid var(--color-accent-sage-light)' }}>
+            {currentUser ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--color-text-dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.name}</div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--color-accent-oak)', fontWeight: '700', textTransform: 'uppercase' }}>{currentUser.role}</div>
+                  </div>
+                </div>
+
+                {currentUser.role === 'Parent' && subUsers.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '0.5rem' }}>
+                    <label style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>Switch Profile:</label>
+                    <select 
+                      style={{ fontSize: '0.75rem', padding: '0.15rem', borderRadius: '4px', border: '1px solid var(--color-accent-sage-light)', width: '100%' }}
+                      value={currentUser.id}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === currentUser.id) return;
+                        const sub = subUsers.find(s => s.id === val);
+                        if (sub) {
+                          localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
+                          setCurrentUser(sub);
+                        }
+                      }}
+                    >
+                      <option value={currentUser.id}>{currentUser.name} (Parent)</option>
+                      {subUsers.map(sub => (
+                        <option key={sub.id} value={sub.id}>{sub.name} (Child)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {currentUser.parentId && (
+                  <button 
+                    onClick={() => {
+                      const parent = JSON.parse(localStorage.getItem('grove_parent_user'));
+                      if (parent) {
+                        setCurrentUser(parent);
+                      }
+                    }}
+                    style={{ width: '100%', fontSize: '0.7rem', padding: '3px 0', border: '1px solid var(--color-primary)', background: 'white', color: 'var(--color-primary)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', marginBottom: '0.25rem' }}
+                  >
+                    Switch to Parent
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('grove_parent_user');
+                    setCurrentUser(null);
+                  }}
+                  style={{ width: '100%', fontSize: '0.7rem', padding: '3px 0', border: '1px solid var(--color-accent-oak)', background: 'white', color: 'var(--color-accent-oak)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', margin: '0 0 0.5rem 0' }}>Join the grove to share, post and connect!</p>
+                <button 
+                  onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  Sign In / Register
+                </button>
+              </div>
+            )}
           </div>
 
           <nav>
@@ -487,7 +812,25 @@ export default function App() {
                   onClick={() => setActiveTab('community')}
                 >
                   <CommunityIcon />
-                  <span>Community</span>
+                  <span>Community Board</span>
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'fieldtrips' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('fieldtrips')}
+                >
+                  <PinIcon />
+                  <span>Field Trips</span>
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'businesses' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('businesses')}
+                >
+                  <BusinessIcon />
+                  <span>Business Board</span>
                 </button>
               </li>
               <li className="nav-item">
@@ -520,35 +863,37 @@ export default function App() {
               <div>
                 <h1 className="page-title">Homeschool Dashboard</h1>
               </div>
-              <button className="btn btn-primary" onClick={() => setShowCurriculumModal(true)}>
-                <PlusIcon /> Write Review
-              </button>
+              {(!currentUser || currentUser.role !== 'Student') && (
+                <button className="btn btn-primary" onClick={() => setShowCurriculumModal(true)}>
+                  <PlusIcon /> Write Review
+                </button>
+              )}
             </header>
 
             {/* Quick Stats Panel */}
             <section className="dashboard-grid">
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('explorer')}>
                 <div className="stat-icon"><CurriculaIcon /></div>
                 <div>
                   <div className="stat-value">{stats.curricula}</div>
                   <div className="stat-label">Reviewed Curricula</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('fieldtrips')}>
                 <div className="stat-icon"><PinIcon /></div>
                 <div>
                   <div className="stat-value">{stats.trips}</div>
                   <div className="stat-label">Field Trips Shared</div>
                 </div>
               </div>
-              <div className="stat-card">
-                <div className="stat-icon"><CommunityIcon /></div>
+              <div className="stat-card" onClick={() => setActiveTab('businesses')}>
+                <div className="stat-icon"><BusinessIcon /></div>
                 <div>
                   <div className="stat-value">{stats.ads}</div>
                   <div className="stat-label">Local Mom Businesses</div>
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" onClick={() => setActiveTab('resources')}>
                 <div className="stat-icon"><ResourcesIcon /></div>
                 <div>
                   <div className="stat-value">{stats.resources}</div>
@@ -615,7 +960,7 @@ export default function App() {
                 <ul className="feed-list">
                   {businessAds.slice(-2).reverse().map(ad => (
                     <li className="feed-item" key={ad.id} onClick={() => setSelectedAdDetail(ad)} style={{ cursor: 'pointer' }}>
-                      <div className="feed-icon"><CommunityIcon /></div>
+                      <div className="feed-icon"><BusinessIcon /></div>
                       <div className="feed-content">
                         <div className="feed-title">{ad.businessName}</div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
@@ -644,6 +989,82 @@ export default function App() {
                   )}
                 </ul>
               </div>
+
+              {/* Family Management Hub for Parents */}
+              {currentUser && currentUser.role === 'Parent' && (
+                <div className="panel" style={{ gridColumn: '1 / -1', marginTop: '1.5rem' }}>
+                  <h2 className="panel-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      🌿 My Family Profiles
+                    </span>
+                  </h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                    <div>
+                      <h3 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>Active Child Profiles</h3>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {subUsers.map(sub => (
+                          <li key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'white', borderRadius: '6px', border: '1px solid var(--color-accent-sage-light)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                                {sub.name.charAt(0).toUpperCase()}
+                              </div>
+                              <span style={{ fontWeight: '500', fontSize: '0.9rem' }}>{sub.name}</span>
+                            </div>
+                            <span style={{ fontSize: '0.75rem', background: 'var(--color-accent-oak-light)', color: 'var(--color-accent-oak)', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                              STUDENT
+                            </span>
+                          </li>
+                        ))}
+                        {subUsers.length === 0 && (
+                          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>No student profiles added yet. Create one on the right!</p>
+                        )}
+                      </ul>
+                    </div>
+
+                    <div style={{ borderLeft: '1px solid var(--color-accent-sage-light)', paddingLeft: '2rem' }}>
+                      <h3 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>Add Child Profile</h3>
+                      <form onSubmit={handleNewSubUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Child's Name</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Joey Jenkins" 
+                            required 
+                            value={newSubUserForm.name}
+                            onChange={(e) => setNewSubUserForm(prev => ({ ...prev, name: e.target.value }))}
+                            style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-accent-sage-light)', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Child's Email</label>
+                          <input 
+                            type="email" 
+                            placeholder="e.g. joey@example.com" 
+                            required 
+                            value={newSubUserForm.email}
+                            onChange={(e) => setNewSubUserForm(prev => ({ ...prev, email: e.target.value }))}
+                            style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-accent-sage-light)', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Password</label>
+                          <input 
+                            type="password" 
+                            placeholder="Set profile password" 
+                            required 
+                            value={newSubUserForm.password}
+                            onChange={(e) => setNewSubUserForm(prev => ({ ...prev, password: e.target.value }))}
+                            style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--color-accent-sage-light)', fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem', alignSelf: 'flex-start', padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
+                          Add Profile
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -657,9 +1078,11 @@ export default function App() {
               <div>
                 <h1 className="page-title">Curriculum Explorer</h1>
               </div>
-              <button className="btn btn-primary" onClick={() => setShowCurriculumModal(true)}>
-                <PlusIcon /> Submit Curriculum Review
-              </button>
+              {(!currentUser || currentUser.role !== 'Student') && (
+                <button className="btn btn-primary" onClick={() => setShowCurriculumModal(true)}>
+                  <PlusIcon /> Submit Curriculum Review
+                </button>
+              )}
             </header>
 
             <div className="explorer-container">
@@ -921,7 +1344,7 @@ export default function App() {
         )}
 
         {/* ======================================= */}
-        {/* TABS 3: COMMUNITY PORTAL                */}
+        {/* TABS 3: COMMUNITY BOARD (FORUM)         */}
         {/* ======================================= */}
         {activeTab === 'community' && (
           <div>
@@ -929,159 +1352,322 @@ export default function App() {
               <div>
                 <h1 className="page-title">Community Board</h1>
               </div>
-              {communitySubTab === 'trips' ? (
+              {(!currentUser || currentUser.role !== 'Student') && (
+                <button className="btn btn-primary" onClick={() => setShowPostModal(true)}>
+                  <PlusIcon /> Share Update / Post
+                </button>
+              )}
+            </header>
+
+            <div className="explorer-container">
+              {/* Forum Filters */}
+              <aside className="filter-sidebar">
+                <div className="filter-title">
+                  <strong>Filter Discussions</strong>
+                  <span className="filter-clear" onClick={() => {
+                    setPostSearchQuery('');
+                    setSelectedPostCategory('All');
+                  }}>Clear</span>
+                </div>
+
+                {/* Keyword Search */}
+                <div className="filter-group">
+                  <div className="search-input-wrapper">
+                    <input 
+                      type="text" 
+                      className="search-input" 
+                      placeholder="Search posts..." 
+                      value={postSearchQuery}
+                      onChange={(e) => setPostSearchQuery(e.target.value)}
+                    />
+                    <svg className="search-icon" viewBox="0 0 24 24">
+                      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Category selection */}
+                <div className="filter-group">
+                  <h4 className="filter-group-title">Category</h4>
+                  <ul className="option-list">
+                    {['All', 'General', 'Questions', 'Advice', 'Meetups'].map(cat => (
+                      <li 
+                        className="option-item" 
+                        key={cat} 
+                        onClick={() => setSelectedPostCategory(cat)}
+                        style={{ fontWeight: selectedPostCategory === cat ? '700' : 'normal', color: selectedPostCategory === cat ? 'var(--color-primary)' : 'inherit' }}
+                      >
+                        <input 
+                          type="radio" 
+                          name="post-category"
+                          checked={selectedPostCategory === cat}
+                          onChange={() => {}}
+                        />
+                        <span>{cat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </aside>
+
+              {/* Feed of Posts */}
+              <section className="feed-list" style={{ width: '100%' }}>
+                {filteredPosts.length > 0 ? (
+                  filteredPosts.map(post => (
+                    <article className="post-card" key={post.id}>
+                      <div className="post-header">
+                        <h3 className="post-title">{post.title}</h3>
+                        <span className={`badge-category badge-${post.category.toLowerCase()}`}>
+                          {post.category}
+                        </span>
+                      </div>
+                      <div className="post-meta">
+                        <span>By <strong>{post.author}</strong></span>
+                        <span>•</span>
+                        <span>{new Date(post.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="post-content">{post.content}</p>
+                    </article>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
+                    <h3>No community posts matched your filters.</h3>
+                    <p style={{ marginTop: '0.5rem' }}>Be the first to share an update or question!</p>
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================= */}
+        {/* TABS 4: FIELD TRIPS                     */}
+        {/* ======================================= */}
+        {activeTab === 'fieldtrips' && (
+          <div>
+            <header className="content-header">
+              <div>
+                <h1 className="page-title">Field Trip Finder</h1>
+              </div>
+              {(!currentUser || currentUser.role !== 'Student') && (
                 <button className="btn btn-primary" onClick={() => setShowTripModal(true)}>
                   <PlusIcon /> Share Field Trip
                 </button>
-              ) : (
+              )}
+            </header>
+
+            {/* Field Trip Filters Bar */}
+            <div className="trip-filters-bar" style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'center',
+              background: 'var(--color-card)',
+              padding: '1.25rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              marginBottom: '1.5rem',
+              flexWrap: 'wrap',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              {/* Keyword Search */}
+              <div style={{ flex: '1 1 240px', position: 'relative' }}>
+                <input 
+                  type="text"
+                  className="form-control"
+                  style={{ paddingLeft: '2.25rem', height: '42px' }}
+                  placeholder="Search city, state, name, or zip..."
+                  value={tripSearchQuery}
+                  onChange={(e) => setTripSearchQuery(e.target.value)}
+                />
+                <svg className="search-icon" viewBox="0 0 24 24" style={{ left: '12px', top: '50%', transform: 'translateY(-50%)', position: 'absolute', width: '18px', height: '18px', fill: 'var(--color-text-muted)' }}>
+                  <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+              </div>
+
+              {/* Subject Dropdown */}
+              <div style={{ flex: '0 1 180px' }}>
+                <select
+                  className="form-control"
+                  style={{ height: '42px', fontWeight: '500' }}
+                  value={tripSelectedSubject}
+                  onChange={(e) => setTripSelectedSubject(e.target.value)}
+                >
+                  <option value="All">All Subjects</option>
+                  <option value="Science">Science & Biology</option>
+                  <option value="History">History & Social Studies</option>
+                  <option value="Art & Music">Art & Creative Expression</option>
+                  <option value="Mathematics">Practical Math/STEM</option>
+                </select>
+              </div>
+
+              {/* Grade Dropdown */}
+              <div style={{ flex: '0 1 180px' }}>
+                <select
+                  className="form-control"
+                  style={{ height: '42px', fontWeight: '500' }}
+                  value={tripSelectedGrade}
+                  onChange={(e) => setTripSelectedGrade(e.target.value)}
+                >
+                  <option value="All">All Grades</option>
+                  <option value="Elementary">Elementary Recommendation</option>
+                  <option value="Middle">Middle School Recommendation</option>
+                  <option value="High">High School Recommendation</option>
+                </select>
+              </div>
+
+              {/* Clear button if active filters */}
+              {(tripSearchQuery || tripSelectedSubject !== 'All' || tripSelectedGrade !== 'All') && (
+                <button 
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ height: '42px', padding: '0 1.25rem', borderRadius: 'var(--radius-sm)' }}
+                  onClick={() => {
+                    setTripSearchQuery('');
+                    setTripSelectedSubject('All');
+                    setTripSelectedGrade('All');
+                  }}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+
+            {filteredFieldTrips.length > 0 && (
+              <div id="field-trip-map" className="map-container"></div>
+            )}
+
+            <section className="trips-grid">
+              {filteredFieldTrips.map(trip => (
+                <article className="trip-card" key={trip.id} onClick={() => setSelectedTripDetail(trip)} style={{ cursor: 'pointer' }}>
+                  <div>
+                    <div className="card-header-row">
+                      <span className="subject-badge">{trip.subject}</span>
+                      {renderStars(trip.rating)}
+                    </div>
+                    <h3 className="trip-title">{trip.name}</h3>
+                    <div className="trip-location">
+                      <PinIcon />
+                      <span>{trip.location}{trip.city ? `, ${trip.city}` : ''}{trip.state ? `, ${trip.state}` : ''}</span>
+                    </div>
+                    <p className="trip-desc">{trip.description}</p>
+                  </div>
+
+                  <div className="trip-meta">
+                    <span style={{ color: 'var(--color-accent-oak)' }}>Cost: {trip.cost.toUpperCase()}</span>
+                    <span>Target: {trip.gradeRecommendation}</span>
+                  </div>
+                </article>
+              ))}
+              {filteredFieldTrips.length === 0 && (
+                <p style={{ gridColumn: '1 / -1', color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
+                  {fieldTrips.length === 0 
+                    ? "No field trips listed yet. Share one to populate the directory!" 
+                    : "No field trips matched your filters. Try clearing them!"}
+                </p>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* ======================================= */}
+        {/* TABS 5: MOMS' BUSINESS BOARD            */}
+        {/* ======================================= */}
+        {activeTab === 'businesses' && (
+          <div>
+            <header className="content-header">
+              <div>
+                <h1 className="page-title">Business Board</h1>
+              </div>
+              {(!currentUser || currentUser.role !== 'Student') && (
                 <button className="btn btn-primary" onClick={() => setShowAdModal(true)}>
                   <PlusIcon /> Advertise Business
                 </button>
               )}
             </header>
 
-            {/* Inner Sub tabs */}
-            <nav className="community-tabs-nav">
-              <button 
-                className={`community-tab-btn ${communitySubTab === 'trips' ? 'active' : ''}`}
-                onClick={() => setCommunitySubTab('trips')}
-              >
-                Field Trip Opportunities
-              </button>
-              <button 
-                className={`community-tab-btn ${communitySubTab === 'ads' ? 'active' : ''}`}
-                onClick={() => setCommunitySubTab('ads')}
-              >
-                Moms' Business Board
-              </button>
-            </nav>
+            <div className="explorer-container">
+              {/* Business Ads Filters */}
+              <aside className="filter-sidebar">
+                <div className="filter-title">
+                  <strong>Filter Listings</strong>
+                  <span className="filter-clear" onClick={() => {
+                    setAdSearchQuery('');
+                    setSelectedAdCategory('All');
+                    setAdSelectedType('All');
+                  }}>Clear</span>
+                </div>
 
-            {/* Sub-tab 1: Field Trips */}
-            {communitySubTab === 'trips' && (
-              <div>
-                {/* Field Trip Filters Bar */}
-                <div className="trip-filters-bar" style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  alignItems: 'center',
-                  background: 'var(--color-card)',
-                  padding: '1.25rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--color-border)',
-                  marginBottom: '1.5rem',
-                  flexWrap: 'wrap',
-                  boxShadow: 'var(--shadow-sm)'
-                }}>
-                  {/* Keyword Search */}
-                  <div style={{ flex: '1 1 240px', position: 'relative' }}>
+                {/* Keyword Search */}
+                <div className="filter-group">
+                  <div className="search-input-wrapper">
                     <input 
-                      type="text"
-                      className="form-control"
-                      style={{ paddingLeft: '2.25rem', height: '42px' }}
-                      placeholder="Search city, state, name, or zip..."
-                      value={tripSearchQuery}
-                      onChange={(e) => setTripSearchQuery(e.target.value)}
+                      type="text" 
+                      className="search-input" 
+                      placeholder="Search directory..." 
+                      value={adSearchQuery}
+                      onChange={(e) => setAdSearchQuery(e.target.value)}
                     />
-                    <svg className="search-icon" viewBox="0 0 24 24" style={{ left: '12px', top: '50%', transform: 'translateY(-50%)', position: 'absolute', width: '18px', height: '18px', fill: 'var(--color-text-muted)' }}>
+                    <svg className="search-icon" viewBox="0 0 24 24">
                       <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
                     </svg>
                   </div>
-
-                  {/* Subject Dropdown */}
-                  <div style={{ flex: '0 1 180px' }}>
-                    <select
-                      className="form-control"
-                      style={{ height: '42px', fontWeight: '500' }}
-                      value={tripSelectedSubject}
-                      onChange={(e) => setTripSelectedSubject(e.target.value)}
-                    >
-                      <option value="All">All Subjects</option>
-                      <option value="Science">Science & Biology</option>
-                      <option value="History">History & Social Studies</option>
-                      <option value="Art & Music">Art & Creative Expression</option>
-                      <option value="Mathematics">Practical Math/STEM</option>
-                    </select>
-                  </div>
-
-                  {/* Grade Dropdown */}
-                  <div style={{ flex: '0 1 180px' }}>
-                    <select
-                      className="form-control"
-                      style={{ height: '42px', fontWeight: '500' }}
-                      value={tripSelectedGrade}
-                      onChange={(e) => setTripSelectedGrade(e.target.value)}
-                    >
-                      <option value="All">All Grades</option>
-                      <option value="Elementary">Elementary Recommendation</option>
-                      <option value="Middle">Middle School Recommendation</option>
-                      <option value="High">High School Recommendation</option>
-                    </select>
-                  </div>
-
-                  {/* Clear button if active filters */}
-                  {(tripSearchQuery || tripSelectedSubject !== 'All' || tripSelectedGrade !== 'All') && (
-                    <button 
-                      type="button"
-                      className="btn btn-secondary"
-                      style={{ height: '42px', padding: '0 1.25rem', borderRadius: 'var(--radius-sm)' }}
-                      onClick={() => {
-                        setTripSearchQuery('');
-                        setTripSelectedSubject('All');
-                        setTripSelectedGrade('All');
-                      }}
-                    >
-                      Clear Filters
-                    </button>
-                  )}
                 </div>
 
-                {filteredFieldTrips.length > 0 && (
-                  <div id="field-trip-map" className="map-container"></div>
-                )}
+                {/* Category selection */}
+                <div className="filter-group">
+                  <h4 className="filter-group-title">Category</h4>
+                  <ul className="option-list">
+                    {['All', 'Storefronts', 'Cottage Industries', 'Academic Services', 'Creative & Extracurriculars'].map(cat => (
+                      <li 
+                        className="option-item" 
+                        key={cat} 
+                        onClick={() => setSelectedAdCategory(cat)}
+                        style={{ fontWeight: selectedAdCategory === cat ? '700' : 'normal', color: selectedAdCategory === cat ? 'var(--color-primary)' : 'inherit' }}
+                      >
+                        <input 
+                          type="radio" 
+                          name="ad-category"
+                          checked={selectedAdCategory === cat}
+                          onChange={() => {}}
+                        />
+                        <span>{cat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-                <section className="trips-grid">
-                  {filteredFieldTrips.map(trip => (
-                    <article className="trip-card" key={trip.id} onClick={() => setSelectedTripDetail(trip)} style={{ cursor: 'pointer' }}>
-                      <div>
-                        <div className="card-header-row">
-                          <span className="subject-badge">{trip.subject}</span>
-                          {renderStars(trip.rating)}
-                        </div>
-                        <h3 className="trip-title">{trip.name}</h3>
-                        <div className="trip-location">
-                          <PinIcon />
-                          <span>{trip.location}{trip.city ? `, ${trip.city}` : ''}{trip.state ? `, ${trip.state}` : ''}</span>
-                        </div>
-                        <p className="trip-desc">{trip.description}</p>
-                      </div>
+                {/* Business Type selection */}
+                <div className="filter-group">
+                  <h4 className="filter-group-title">Business Type</h4>
+                  <select 
+                    className="form-control"
+                    value={adSelectedType}
+                    onChange={(e) => setAdSelectedType(e.target.value)}
+                    style={{ width: '100%', height: '40px', fontWeight: '500' }}
+                  >
+                    {uniqueBusinessTypes.map(type => (
+                      <option key={type} value={type}>{type === 'All' ? 'All Types' : type}</option>
+                    ))}
+                  </select>
+                </div>
+              </aside>
 
-                      <div className="trip-meta">
-                        <span style={{ color: 'var(--color-accent-oak)' }}>Cost: {trip.cost.toUpperCase()}</span>
-                        <span>Target: {trip.gradeRecommendation}</span>
-                      </div>
-                    </article>
-                  ))}
-                  {filteredFieldTrips.length === 0 && (
-                    <p style={{ gridColumn: '1 / -1', color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
-                      {fieldTrips.length === 0 
-                        ? "No field trips listed yet. Share one to populate the directory!" 
-                        : "No field trips matched your filters. Try clearing them!"}
-                    </p>
-                  )}
-                </section>
-              </div>
-            )}
-
-            {/* Sub-tab 2: Mom Ads */}
-            {communitySubTab === 'ads' && (
-              <section className="ads-grid">
-                {businessAds.map(ad => (
+              {/* Directory of Ads */}
+              <section className="ads-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', width: '100%', height: 'fit-content' }}>
+                {filteredBusinessAds.map(ad => (
                   <article className="ad-card" key={ad.id} onClick={() => setSelectedAdDetail(ad)} style={{ cursor: 'pointer' }}>
                     <div>
-                      <span className="ad-category">{ad.category}</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                        <span className="ad-category">{ad.category}</span>
+                        {ad.businessType && (
+                          <span style={{ fontSize: '0.75rem', background: 'var(--color-accent-oak-light)', color: 'var(--color-accent-oak)', padding: '0.25rem 0.75rem', borderRadius: '50px', fontWeight: '700' }}>
+                            {ad.businessType}
+                          </span>
+                        )}
+                      </div>
                       <h3 className="ad-name">{ad.businessName}</h3>
                       <span className="ad-owner">Owner: <strong>{ad.owner}</strong></span>
-                      <p className="ad-desc" style={{ marginTop: '1rem' }}>{ad.description}</p>
+                      <p className="ad-desc" style={{ marginTop: '0.75rem' }}>{ad.description}</p>
                     </div>
 
                     <div className="ad-footer">
@@ -1094,13 +1680,15 @@ export default function App() {
                     </div>
                   </article>
                 ))}
-                {businessAds.length === 0 && (
+                {filteredBusinessAds.length === 0 && (
                   <p style={{ gridColumn: '1 / -1', color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
-                    No local business listings yet. Put your tutoring, classes, or crafts here!
+                    {businessAds.length === 0 
+                      ? "No storefront or cottage industry listings yet. Post your business here!" 
+                      : "No listings matched your filter criteria."}
                   </p>
                 )}
               </section>
-            )}
+            </div>
           </div>
         )}
 
@@ -1109,39 +1697,103 @@ export default function App() {
         {/* ======================================= */}
         {activeTab === 'resources' && (
           <div>
-            <header className="content-header">
+            <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h1 className="page-title">Online Resources</h1>
               </div>
+              <div>
+                {currentUser && currentUser.role !== 'Student' && (
+                  <button className="btn btn-primary" onClick={() => setShowResourceModal(true)}>
+                    + Submit Resource
+                  </button>
+                )}
+              </div>
             </header>
 
-            <section className="resources-grid">
-              {resources.map(res => (
-                <article className="resource-card" key={res.id}>
-                  <div>
-                    <div className="res-header">
-                      <span className="res-badge">{res.subject}</span>
-                      <span className="res-cost">{res.cost}</span>
-                    </div>
-                    <h3 className="res-name">
-                      {res.name} 
-                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500, marginLeft: '0.5rem' }}>
-                        ({res.type === 'website' ? 'Web Link' : 'Video Channel'})
+            {currentUser && currentUser.role === 'Moderator' && (
+              <div className="board-tabs" style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--color-accent-sage-light)', marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
+                <button 
+                  className={`tab-btn ${!showModQueue ? 'active' : ''}`}
+                  onClick={() => setShowModQueue(false)}
+                  style={{ background: 'none', border: 'none', color: !showModQueue ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: !showModQueue ? '2px solid var(--color-primary)' : 'none' }}
+                >
+                  Published Resources
+                </button>
+                <button 
+                  className={`tab-btn ${showModQueue ? 'active' : ''}`}
+                  onClick={() => setShowModQueue(true)}
+                  style={{ background: 'none', border: 'none', color: showModQueue ? 'var(--color-primary)' : 'var(--color-text-muted)', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer', paddingBottom: '0.25rem', borderBottom: showModQueue ? '2px solid var(--color-primary)' : 'none' }}
+                >
+                  Moderation Queue ({pendingResources.length})
+                </button>
+              </div>
+            )}
+
+            {showModQueue && currentUser && currentUser.role === 'Moderator' ? (
+              <section className="resources-grid">
+                {pendingResources.map(res => (
+                  <article className="resource-card" key={res.id} style={{ border: '1px solid var(--color-accent-oak-light)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <div className="res-header">
+                        <span className="res-badge" style={{ background: 'var(--color-accent-oak-light)', color: 'var(--color-accent-oak)' }}>{res.subject}</span>
+                        <span className="res-cost">{res.cost}</span>
+                      </div>
+                      <h3 className="res-name">
+                        {res.name}
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500, marginLeft: '0.5rem' }}>
+                          ({res.type === 'website' ? 'Web Link' : 'Video Channel'})
+                        </span>
+                      </h3>
+                      <p className="res-desc">{res.description}</p>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginTop: '0.5rem' }}>
+                        Type: <strong>{res.type}</strong> | Link: <a href={res.link} target="_blank" rel="noreferrer">{res.link}</a>
                       </span>
-                    </h3>
-                    <p className="res-desc">{res.description}</p>
-                  </div>
-                  <a href={res.link} target="_blank" rel="noreferrer" className="res-link">
-                    Open Resource <ExternalLinkIcon />
-                  </a>
-                </article>
-              ))}
-              {resources.length === 0 && (
-                <p style={{ gridColumn: '1 / -1', color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
-                  No resources stored.
-                </p>
-              )}
-            </section>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                      <button className="btn btn-primary" onClick={() => handleApproveResource(res.id)} style={{ flex: 1, padding: '0.5rem 0' }}>
+                        Approve
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => handleRejectResource(res.id)} style={{ flex: 1, padding: '0.5rem 0', background: '#e07a5f', color: 'white' }}>
+                        Reject
+                      </button>
+                    </div>
+                  </article>
+                ))}
+                {pendingResources.length === 0 && (
+                  <p style={{ gridColumn: '1 / -1', color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
+                    All caught up! No resources pending moderation.
+                  </p>
+                )}
+              </section>
+            ) : (
+              <section className="resources-grid">
+                {resources.map(res => (
+                  <article className="resource-card" key={res.id}>
+                    <div>
+                      <div className="res-header">
+                        <span className="res-badge">{res.subject}</span>
+                        <span className="res-cost">{res.cost}</span>
+                      </div>
+                      <h3 className="res-name">
+                        {res.name} 
+                        <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500, marginLeft: '0.5rem' }}>
+                          ({res.type === 'website' ? 'Web Link' : 'Video Channel'})
+                        </span>
+                      </h3>
+                      <p className="res-desc">{res.description}</p>
+                    </div>
+                    <a href={res.link} target="_blank" rel="noreferrer" className="res-link">
+                      Open Resource <ExternalLinkIcon />
+                    </a>
+                  </article>
+                ))}
+                {resources.length === 0 && (
+                  <p style={{ gridColumn: '1 / -1', color: 'var(--color-text-muted)', textAlign: 'center', padding: '3rem' }}>
+                    No resources stored.
+                  </p>
+                )}
+              </section>
+            )}
           </div>
         )}
       </main>
@@ -1552,7 +2204,7 @@ export default function App() {
         <div className="modal-overlay">
           <div className="modal-content">
             <button className="modal-close" onClick={() => setShowAdModal(false)}>×</button>
-            <h2 className="modal-title">List on Moms' Business Board</h2>
+            <h2 className="modal-title">List on Business Board</h2>
 
             <form onSubmit={handleAdSubmit}>
               <div className="form-group">
@@ -1564,6 +2216,18 @@ export default function App() {
                   required
                   value={newAd.businessName}
                   onChange={(e) => setNewAd(prev => ({...prev, businessName: e.target.value}))}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Business Type / Specialty</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="e.g. Baked Goods, IT Support, Music Lessons, Tutoring"
+                  required
+                  value={newAd.businessType}
+                  onChange={(e) => setNewAd(prev => ({...prev, businessType: e.target.value}))}
                 />
               </div>
 
@@ -1586,10 +2250,10 @@ export default function App() {
                     value={newAd.category}
                     onChange={(e) => setNewAd(prev => ({...prev, category: e.target.value}))}
                   >
-                    <option value="Tutoring & Classes">Tutoring & Custom Classes</option>
-                    <option value="Extracurriculars">Extracurriculars (Music, Sports)</option>
-                    <option value="Co-ops & Groups">Co-ops & Community Groups</option>
-                    <option value="Services & Products">Handmade Products & Services</option>
+                    <option value="Cottage Industries">Cottage Industries</option>
+                    <option value="Storefronts">Storefronts</option>
+                    <option value="Academic Services">Academic Services</option>
+                    <option value="Creative & Extracurriculars">Creative & Extracurriculars</option>
                   </select>
                 </div>
               </div>
@@ -1633,6 +2297,241 @@ export default function App() {
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAdModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary">Publish Ad</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* MODAL: CREATE COMMUNITY POST           */}
+      {/* ======================================= */}
+      {showPostModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <button className="modal-close" onClick={() => setShowPostModal(false)}>×</button>
+            <h2 className="modal-title">Share a Community Update / Post</h2>
+
+            <form onSubmit={handlePostSubmit}>
+              <div className="form-group">
+                <label className="form-label">Post Title</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="e.g. Suggestions for homeschool field trips in June?"
+                  required
+                  value={newPost.title}
+                  onChange={(e) => setNewPost(prev => ({...prev, title: e.target.value}))}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Your Name</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="e.g. Sarah Jenkins"
+                    required
+                    value={newPost.author}
+                    onChange={(e) => setNewPost(prev => ({...prev, author: e.target.value}))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select 
+                    className="form-control"
+                    value={newPost.category}
+                    onChange={(e) => setNewPost(prev => ({...prev, category: e.target.value}))}
+                  >
+                    <option value="General">General / Updates</option>
+                    <option value="Questions">Questions / Help Needed</option>
+                    <option value="Advice">Advice / Reviews</option>
+                    <option value="Meetups">Co-ops / Meetups</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Post Content</label>
+                <textarea 
+                  className="form-control" 
+                  rows="5" 
+                  placeholder="Type your message here..."
+                  required
+                  value={newPost.content}
+                  onChange={(e) => setNewPost(prev => ({...prev, content: e.target.value}))}
+                ></textarea>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPostModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Publish Post</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* MODAL: SUBMIT RESOURCE                  */}
+      {/* ======================================= */}
+      {showResourceModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '600px' }}>
+            <button className="modal-close" onClick={() => setShowResourceModal(false)}>×</button>
+            <h2 className="modal-title">Submit Recommended Resource</h2>
+
+            <form onSubmit={handleResourceSubmit}>
+              <div className="form-group">
+                <label className="form-label">Resource Name / Title</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="e.g. Khan Academy"
+                  required
+                  value={newResource.name}
+                  onChange={(e) => setNewResource(prev => ({...prev, name: e.target.value}))}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Subject</label>
+                  <select 
+                    className="form-control"
+                    value={newResource.subject}
+                    onChange={(e) => setNewResource(prev => ({...prev, subject: e.target.value}))}
+                  >
+                    <option value="Math">Math</option>
+                    <option value="Science">Science</option>
+                    <option value="Language Arts">Language Arts</option>
+                    <option value="History">History</option>
+                    <option value="Foreign Language">Foreign Language</option>
+                    <option value="All Subjects">All Subjects</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Cost Range</label>
+                  <select 
+                    className="form-control"
+                    value={newResource.cost}
+                    onChange={(e) => setNewResource(prev => ({...prev, cost: e.target.value}))}
+                  >
+                    <option value="free">Free</option>
+                    <option value="low-cost">Low Cost</option>
+                    <option value="subscription">Subscription</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Resource Type</label>
+                  <select 
+                    className="form-control"
+                    value={newResource.type}
+                    onChange={(e) => setNewResource(prev => ({...prev, type: e.target.value}))}
+                  >
+                    <option value="website">Web Link / Website</option>
+                    <option value="video">Video Channel / Playlist</option>
+                    <option value="printable">Printable / Worksheet</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Website URL</label>
+                  <input 
+                    type="url" 
+                    className="form-control" 
+                    placeholder="e.g. https://www.khanacademy.org"
+                    required
+                    value={newResource.link}
+                    onChange={(e) => setNewResource(prev => ({...prev, link: e.target.value}))}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Short Description</label>
+                <textarea 
+                  className="form-control" 
+                  rows="3" 
+                  placeholder="Explain why you recommend this resource..."
+                  required
+                  value={newResource.description}
+                  onChange={(e) => setNewResource(prev => ({...prev, description: e.target.value}))}
+                ></textarea>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowResourceModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Submit for Approval</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================= */}
+      {/* MODAL: USER AUTHENTICATION (SIGN IN)    */}
+      {/* ======================================= */}
+      {showAuthModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <button className="modal-close" onClick={() => setShowAuthModal(false)}>×</button>
+            <h2 className="modal-title">{authMode === 'login' ? 'Sign In' : 'Create Account'}</h2>
+
+            <form onSubmit={handleAuthSubmit}>
+              {authMode === 'register' && (
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Sarah Jenkins"
+                    required
+                    value={authForm.name}
+                    onChange={(e) => setAuthForm(prev => ({...prev, name: e.target.value}))}
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <input 
+                  type="email" 
+                  className="form-control" 
+                  placeholder="parent@example.com"
+                  required
+                  value={authForm.email}
+                  onChange={(e) => setAuthForm(prev => ({...prev, email: e.target.value}))}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input 
+                  type="password" 
+                  className="form-control" 
+                  placeholder="••••••••"
+                  required
+                  value={authForm.password}
+                  onChange={(e) => setAuthForm(prev => ({...prev, password: e.target.value}))}
+                />
+              </div>
+
+              <div className="form-actions" style={{ flexDirection: 'column', gap: '0.75rem' }}>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                  {authMode === 'login' ? 'Sign In' : 'Register Parent Account'}
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setAuthMode(prev => prev === 'login' ? 'register' : 'login')}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Sign In"}
+                </button>
               </div>
             </form>
           </div>
