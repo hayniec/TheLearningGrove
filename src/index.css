@@ -2,17 +2,23 @@
 
 :root {
   /* Curated HSL Forest Palette */
-  --color-primary: #1e3f20;       /* HSL 125, 36%, 18% - Deep Moss/Forest */
+  --color-primary: #1e3f20;
+  /* HSL 125, 36%, 18% - Deep Moss/Forest */
   --color-primary-rgb: 30, 63, 32;
-  --color-accent-sage: #8ca88e;   /* HSL 125, 15%, 60% - Warm Sage */
+  --color-accent-sage: #8ca88e;
+  /* HSL 125, 15%, 60% - Warm Sage */
   --color-accent-sage-light: #f0f4f0;
-  --color-accent-oak: #b77c43;    /* HSL 30, 46%, 49% - Rich Gold/Timber */
+  --color-accent-oak: #b77c43;
+  /* HSL 30, 46%, 49% - Rich Gold/Timber */
   --color-accent-oak-light: #f9f2eb;
-  --color-bg: #faf8f5;            /* Soft Ivory Paper */
+  --color-bg: #faf8f5;
+  /* Soft Ivory Paper */
   --color-card: #ffffff;
-  --color-text-dark: #2d312e;     /* Charcoal Wood */
+  --color-text-dark: #2d312e;
+  /* Charcoal Wood */
   --color-text-muted: #6b726d;
-  --color-text-light: #ecefea;    /* Soft Linen */
+  --color-text-light: #ecefea;
+  /* Soft Linen */
   --color-border: #e6ebe6;
   --color-star: #e29547;
   --color-danger: #a94442;
@@ -33,11 +39,14 @@
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
-  --radius-organic: 16px 4px 16px 4px; /* Organic leaf shapes */
+  --radius-organic: 16px 4px 16px 4px;
+  /* Organic leaf shapes */
 }
 
 /* Global Resets */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -52,7 +61,12 @@ body {
   min-height: 100vh;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -65,7 +79,10 @@ a {
   transition: var(--transition-smooth);
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
@@ -148,7 +165,8 @@ button, input, select, textarea {
   fill: currentColor;
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
   color: #ffffff;
   background-color: rgba(255, 255, 255, 0.08);
 }
@@ -599,7 +617,8 @@ button, input, select, textarea {
   cursor: pointer;
 }
 
-.option-item input[type="checkbox"], .option-item input[type="radio"] {
+.option-item input[type="checkbox"],
+.option-item input[type="radio"] {
   accent-color: var(--color-primary);
   width: 16px;
   height: 16px;
@@ -1121,20 +1140,33 @@ button, input, select, textarea {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(30px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* 10. RESPONSIVE NAVIGATION MOBILE OVERRIDES */
 @media(max-width: 768px) {
   .app-container {
     grid-template-columns: 1fr;
-    padding-bottom: 70px; /* Leave space for bottom nav */
+    padding-bottom: 70px;
+    /* Leave space for bottom nav */
   }
 
   .sidebar {
@@ -1150,11 +1182,12 @@ button, input, select, textarea {
     border-right: none;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background-color: var(--color-primary);
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   }
 
   .brand-section {
-    display: none; /* Hide header branding on bottom nav */
+    display: none;
+    /* Hide header branding on bottom nav */
   }
 
   .sidebar-footer {
@@ -1221,7 +1254,8 @@ button, input, select, textarea {
   border: 1px solid var(--color-border);
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm);
-  z-index: 1; /* Keep map layers within layout bounds */
+  z-index: 1;
+  /* Keep map layers within layout bounds */
 }
 
 /* Customizing popup styling to align with Forest Theme */
@@ -1322,7 +1356,8 @@ button, input, select, textarea {
 }
 
 .badge-questions {
-  background-color: #e0f2f1; /* Pale teal */
+  background-color: #e0f2f1;
+  /* Pale teal */
   color: #004d40;
 }
 
@@ -1332,7 +1367,7 @@ button, input, select, textarea {
 }
 
 .badge-meetups {
-  background-color: #efebe9; /* Warm brown-grey */
+  background-color: #efebe9;
+  /* Warm brown-grey */
   color: #4e342e;
 }
-

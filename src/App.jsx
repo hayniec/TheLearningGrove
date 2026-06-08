@@ -39,7 +39,7 @@ const BusinessIcon = () => (
 
 export default function App() {
   // Navigation State
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('explorer');
 
   // Community Forum State
   const [posts, setPosts] = useState([]);
@@ -788,6 +788,7 @@ export default function App() {
 
           <nav>
             <ul className="nav-list">
+              {/*
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
@@ -797,6 +798,7 @@ export default function App() {
                   <span>Dashboard</span>
                 </button>
               </li>
+              */}
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'explorer' ? 'active' : ''}`}
@@ -806,6 +808,7 @@ export default function App() {
                   <span>Curricula</span>
                 </button>
               </li>
+              {/*
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'community' ? 'active' : ''}`}
@@ -815,6 +818,7 @@ export default function App() {
                   <span>Community Board</span>
                 </button>
               </li>
+              */}
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'fieldtrips' ? 'active' : ''}`}
@@ -824,6 +828,7 @@ export default function App() {
                   <span>Field Trips</span>
                 </button>
               </li>
+              {/*
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'businesses' ? 'active' : ''}`}
@@ -842,6 +847,7 @@ export default function App() {
                   <span>Resources</span>
                 </button>
               </li>
+              */}
             </ul>
           </nav>
         </div>
