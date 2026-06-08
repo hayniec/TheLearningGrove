@@ -828,7 +828,6 @@ export default function App() {
                   <span>Field Trips</span>
                 </button>
               </li>
-              {/*
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'businesses' ? 'active' : ''}`}
@@ -838,6 +837,7 @@ export default function App() {
                   <span>Business Board</span>
                 </button>
               </li>
+              {/*
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'resources' ? 'active' : ''}`}
