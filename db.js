@@ -444,7 +444,26 @@ async function getDB() {
       await fs.writeFile(dbPath, JSON.stringify(seeded, null, 2), 'utf-8');
     }
     const data = await fs.readFile(dbPath, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (!parsed.curriculum_reviews) {
+      parsed.curriculum_reviews = [];
+      if (parsed.curricula) {
+        parsed.curricula.forEach(c => {
+          parsed.curriculum_reviews.push({
+            id: `review-${c.id}-seed`,
+            curriculumId: c.id,
+            userId: c.userId || 'parent-1',
+            userName: "Sarah Jenkins",
+            rating: Number(c.rating) || 5,
+            favoritePart: c.favoritePart || '',
+            description: c.description || '',
+            createdAt: Date.now() - 86400000
+          });
+        });
+      }
+      await saveLocalDB(parsed);
+    }
+    return parsed;
   } else {
     // MySQL Mode
     if (!pool) {
@@ -498,6 +517,31 @@ async function initializeMySQLTables() {
         userId VARCHAR(100) DEFAULT 'parent-1'
       )
     `);
+
+    // 1.5. Curriculum Reviews Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS curriculum_reviews (
+        id VARCHAR(100) PRIMARY KEY,
+        curriculumId VARCHAR(100) NOT NULL,
+        userId VARCHAR(100) NOT NULL,
+        userName VARCHAR(255) NOT NULL,
+        rating INT NOT NULL,
+        favoritePart TEXT,
+        description TEXT NOT NULL,
+        createdAt BIGINT NOT NULL,
+        FOREIGN KEY (curriculumId) REFERENCES curricula(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Migrate existing reviews in MySQL if reviews table is empty
+    const [existingReviews] = await pool.query("SELECT COUNT(*) as count FROM curriculum_reviews");
+    if (existingReviews[0].count === 0) {
+      await pool.query(`
+        INSERT INTO curriculum_reviews (id, curriculumId, userId, userName, rating, favoritePart, description, createdAt)
+        SELECT CONCAT('review-', id, '-seed'), id, userId, 'Sarah Jenkins', rating, favoritePart, description, 1785189391000
+        FROM curricula
+      `);
+    }
 
     // 2. Field Trips Table
     await pool.query(`
@@ -689,21 +733,160 @@ export async function getCurricula() {
   }
 }
 
+export async function getCurriculumReviews(curriculumId) {
+  const db = await getDB();
+  if (!isMySQL) {
+    return (db.curriculum_reviews || []).filter(r => r.curriculumId === curriculumId).sort((a, b) => b.createdAt - a.createdAt);
+  } else {
+    const [rows] = await db.query("SELECT * FROM curriculum_reviews WHERE curriculumId = ? ORDER BY createdAt DESC", [curriculumId]);
+    return rows;
+  }
+}
+
 export async function addCurriculum(item) {
   const db = await getDB();
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
-  const newItem = { ...item, id, userId: item.userId || 'parent-1' };
+  
+  const { rating, favoritePart, description, userId, userName } = item;
+  
+  const newCurriculumItem = {
+    id,
+    name: item.name,
+    subject: item.subject,
+    delivery: item.delivery,
+    grouping: item.grouping,
+    cost: item.cost,
+    rating: Number(rating) || 5,
+    answerKey: item.answerKey,
+    methodology: item.methodology,
+    onlineResources: !!item.onlineResources,
+    selfPaced: !!item.selfPaced,
+    classParticipation: !!item.classParticipation,
+    worldview: item.worldview,
+    videos: !!item.videos,
+    description: description,
+    gradeLevels: item.gradeLevels,
+    userId: userId || 'parent-1'
+  };
+
+  const newReviewItem = {
+    id: `review-${id}-${Date.now().toString().slice(-4)}`,
+    curriculumId: id,
+    userId: userId || 'parent-1',
+    userName: userName || 'Sarah Jenkins',
+    rating: Number(rating) || 5,
+    favoritePart: favoritePart || '',
+    description: description || '',
+    createdAt: Date.now()
+  };
 
   if (!isMySQL) {
-    db.curricula.push(newItem);
+    db.curricula.push(newCurriculumItem);
+    if (!db.curriculum_reviews) db.curriculum_reviews = [];
+    db.curriculum_reviews.push(newReviewItem);
     await saveLocalDB(db);
-    return newItem;
+    return newCurriculumItem;
   } else {
     await db.query(
       "INSERT INTO curricula VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [newItem.id, newItem.name, newItem.subject, newItem.delivery, newItem.grouping, newItem.cost, newItem.rating, newItem.favoritePart, newItem.answerKey, newItem.methodology, newItem.onlineResources ? 1 : 0, newItem.selfPaced ? 1 : 0, newItem.classParticipation ? 1 : 0, newItem.worldview, newItem.videos ? 1 : 0, newItem.description, newItem.gradeLevels ? newItem.gradeLevels.join(',') : '', newItem.userId]
+      [newCurriculumItem.id, newCurriculumItem.name, newCurriculumItem.subject, newCurriculumItem.delivery, newCurriculumItem.grouping, newCurriculumItem.cost, newCurriculumItem.rating, newReviewItem.favoritePart, newCurriculumItem.answerKey, newCurriculumItem.methodology, newCurriculumItem.onlineResources ? 1 : 0, newCurriculumItem.selfPaced ? 1 : 0, newCurriculumItem.classParticipation ? 1 : 0, newCurriculumItem.worldview, newCurriculumItem.videos ? 1 : 0, newCurriculumItem.description, newCurriculumItem.gradeLevels ? newCurriculumItem.gradeLevels.join(',') : '', newCurriculumItem.userId]
     );
-    return newItem;
+    await db.query(
+      "INSERT INTO curriculum_reviews VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [newReviewItem.id, newReviewItem.curriculumId, newReviewItem.userId, newReviewItem.userName, newReviewItem.rating, newReviewItem.favoritePart, newReviewItem.description, newReviewItem.createdAt]
+    );
+    return newCurriculumItem;
+  }
+}
+
+export async function addCurriculumReview(curriculumId, reviewItem) {
+  const db = await getDB();
+  const id = `review-${curriculumId}-${Date.now().toString().slice(-4)}`;
+  const newReview = {
+    id,
+    curriculumId,
+    userId: reviewItem.userId || 'parent-1',
+    userName: reviewItem.userName || 'Sarah Jenkins',
+    rating: Number(reviewItem.rating) || 5,
+    favoritePart: reviewItem.favoritePart || '',
+    description: reviewItem.description || '',
+    createdAt: Date.now()
+  };
+
+  if (!isMySQL) {
+    if (!db.curriculum_reviews) db.curriculum_reviews = [];
+    db.curriculum_reviews.push(newReview);
+    
+    const reviews = db.curriculum_reviews.filter(r => r.curriculumId === curriculumId);
+    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    
+    const curr = db.curricula.find(c => c.id === curriculumId);
+    if (curr) {
+      curr.rating = parseFloat(avgRating.toFixed(1));
+      curr.subject = reviewItem.subject || curr.subject;
+      curr.delivery = reviewItem.delivery || curr.delivery;
+      curr.grouping = reviewItem.grouping || curr.grouping;
+      curr.cost = reviewItem.cost || curr.cost;
+      curr.answerKey = reviewItem.answerKey || curr.answerKey;
+      curr.methodology = reviewItem.methodology || curr.methodology;
+      curr.onlineResources = reviewItem.onlineResources !== undefined ? !!reviewItem.onlineResources : curr.onlineResources;
+      curr.selfPaced = reviewItem.selfPaced !== undefined ? !!reviewItem.selfPaced : curr.selfPaced;
+      curr.classParticipation = reviewItem.classParticipation !== undefined ? !!reviewItem.classParticipation : curr.classParticipation;
+      curr.worldview = reviewItem.worldview || curr.worldview;
+      curr.videos = reviewItem.videos !== undefined ? !!reviewItem.videos : curr.videos;
+      if (reviewItem.gradeLevels) curr.gradeLevels = reviewItem.gradeLevels;
+    }
+    await saveLocalDB(db);
+    return newReview;
+  } else {
+    await db.query(
+      "INSERT INTO curriculum_reviews VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [newReview.id, newReview.curriculumId, newReview.userId, newReview.userName, newReview.rating, newReview.favoritePart, newReview.description, newReview.createdAt]
+    );
+    
+    const [rows] = await db.query("SELECT AVG(rating) as avgRating FROM curriculum_reviews WHERE curriculumId = ?", [curriculumId]);
+    const avgRating = parseFloat(Number(rows[0].avgRating).toFixed(1)) || 5.0;
+    
+    const onlineVal = reviewItem.onlineResources ? 1 : 0;
+    const selfVal = reviewItem.selfPaced ? 1 : 0;
+    const classVal = reviewItem.classParticipation ? 1 : 0;
+    const videosVal = reviewItem.videos ? 1 : 0;
+    const gradesStr = reviewItem.gradeLevels ? reviewItem.gradeLevels.join(',') : '';
+
+    await db.query(
+      `UPDATE curricula SET 
+        rating = ?, 
+        subject = ?, 
+        delivery = ?, 
+        grouping = ?, 
+        cost = ?, 
+        answerKey = ?, 
+        methodology = ?, 
+        onlineResources = ?, 
+        selfPaced = ?, 
+        classParticipation = ?, 
+        worldview = ?, 
+        videos = ?, 
+        gradeLevels = ?
+      WHERE id = ?`,
+      [
+        avgRating, 
+        reviewItem.subject, 
+        reviewItem.delivery, 
+        reviewItem.grouping, 
+        reviewItem.cost, 
+        reviewItem.answerKey, 
+        reviewItem.methodology, 
+        onlineVal, 
+        selfVal, 
+        classVal, 
+        reviewItem.worldview, 
+        videosVal, 
+        gradesStr,
+        curriculumId
+      ]
+    );
+    return newReview;
   }
 }
 

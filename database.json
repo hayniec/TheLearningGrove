@@ -31,6 +31,14 @@
       "name": "Alice Mod",
       "role": "Moderator",
       "parentId": null
+    },
+    {
+      "email": "test@example.com",
+      "password": "2e2b24f8ee40bb847fe85bb23336a39ef5948e6b49d897419ced68766b16967a",
+      "name": "Test User",
+      "role": "Parent",
+      "parentId": null,
+      "id": "user-1785190617863-648"
     }
   ],
   "curricula": [
@@ -41,10 +49,10 @@
       "delivery": "online",
       "grouping": "grade",
       "cost": "$$$",
-      "rating": 5,
+      "rating": 3,
       "favoritePart": "The graphic-novel style guides make highly advanced concepts fun and approachable.",
       "answerKey": "provided",
-      "methodology": "mastery",
+      "methodology": "spiral",
       "onlineResources": true,
       "selfPaced": true,
       "classParticipation": false,
@@ -90,7 +98,7 @@
       "delivery": "online",
       "grouping": "grade",
       "cost": "$$",
-      "rating": 4.8,
+      "rating": 4.9,
       "favoritePart": "Open-and-go video lessons and simple hands-on worksheets make prep nearly zero.",
       "answerKey": "provided",
       "methodology": "spiral",
@@ -223,6 +231,27 @@
         "3",
         "4",
         "5"
+      ],
+      "userId": "parent-1"
+    },
+    {
+      "id": "singapore-math-primary-6122",
+      "name": "Singapore Math Primary",
+      "subject": "Math",
+      "delivery": "online",
+      "grouping": "grade",
+      "cost": "$$",
+      "rating": 3,
+      "answerKey": "provided",
+      "methodology": "spiral",
+      "onlineResources": false,
+      "selfPaced": false,
+      "classParticipation": false,
+      "worldview": "secular",
+      "videos": false,
+      "description": "A very structured math curriculum.",
+      "gradeLevels": [
+        "K"
       ],
       "userId": "parent-1"
     }
@@ -471,6 +500,118 @@
       "category": "Meetups",
       "timestamp": "2026-05-30T12:30:00.000Z",
       "userId": "parent-1"
+    }
+  ],
+  "curriculum_reviews": [
+    {
+      "id": "review-beast-academy-seed",
+      "curriculumId": "beast-academy",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 5,
+      "favoritePart": "The graphic-novel style guides make highly advanced concepts fun and approachable.",
+      "description": "A highly rigorous, comic-book styled math curriculum designed to develop deep problem-solving skills for grades 1-5.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-saxon-math-54-seed",
+      "curriculumId": "saxon-math-54",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4.2,
+      "favoritePart": "Incremental lessons ensure student retention through constant practice.",
+      "description": "An incremental, spiral-based math program focusing on fundamentals, constant review, and structured lessons.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-mystery-science-seed",
+      "curriculumId": "mystery-science",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4.8,
+      "favoritePart": "Open-and-go video lessons and simple hands-on worksheets make prep nearly zero.",
+      "description": "Interactive science lessons categorized by grade level, combining video instruction and easy-to-do physical activities.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-story-of-the-world-seed",
+      "curriculumId": "story-of-the-world",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4.5,
+      "favoritePart": "The narrative format makes history read like a collection of stories rather than a dry textbook.",
+      "description": "A chronological four-volume world history course covering ancient times through the 20th century, highly popular with classical educators.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-torchlight-seed",
+      "curriculumId": "torchlight",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4.7,
+      "favoritePart": "Rich literature selections and modern, eclectic approach to science and art history.",
+      "description": "A literature-heavy, secular curriculum focusing on global history, quality books, and child-led exploration.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-christian-light-math-seed",
+      "curriculumId": "christian-light-math",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4,
+      "favoritePart": "Small, digestible daily booklets ('LightUnits') give kids a sense of accomplishment.",
+      "description": "A structured, highly spiral textbook/workbook system with strong review and clear focus on arithmetic skills.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-blossom-and-root-seed",
+      "curriculumId": "blossom-and-root",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4.9,
+      "favoritePart": "Nature study modules and beautiful hands-on laboratory journals.",
+      "description": "A creative, nature-focused science curriculum blending books, hands-on labs, and outdoor exploration.",
+      "createdAt": 1785104009807
+    },
+    {
+      "id": "review-singapore-math-primary-6122-6122",
+      "curriculumId": "singapore-math-primary-6122",
+      "userId": "parent-1",
+      "userName": "Sarah Jenkins",
+      "rating": 4,
+      "favoritePart": "Visual representations and word problems.",
+      "description": "A very structured math curriculum.",
+      "createdAt": 1785190516122
+    },
+    {
+      "id": "review-singapore-math-primary-6122-6615",
+      "curriculumId": "singapore-math-primary-6122",
+      "userId": "user-1785190617863-648",
+      "userName": "Test User",
+      "rating": 2,
+      "favoritePart": "The interface was okay.",
+      "description": "Not enough explanation of concepts, and the pacing is too fast.",
+      "createdAt": 1785190666615
+    },
+    {
+      "id": "review-beast-academy-2015",
+      "curriculumId": "beast-academy",
+      "userId": "user-1785190617863-648",
+      "userName": "Test User",
+      "rating": 1,
+      "favoritePart": "",
+      "description": "It was not very good, expected more.",
+      "createdAt": 1785191162015
+    },
+    {
+      "id": "review-mystery-science-8180",
+      "curriculumId": "mystery-science",
+      "userId": "user-1785190617863-648",
+      "userName": "Test User",
+      "rating": 5,
+      "favoritePart": "We loved the hands-on science experiments.",
+      "description": "This is a great curriculum.",
+      "createdAt": 1785191518180
     }
   ]
 }

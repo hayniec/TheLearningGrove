@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import {
   getCurricula,
   addCurriculum,
+  getCurriculumReviews,
+  addCurriculumReview,
   getFieldTrips,
   addFieldTrip,
   getBusinessAds,
@@ -46,11 +48,36 @@ app.get('/api/curricula', async (req, res) => {
 
 app.post('/api/curricula', async (req, res) => {
   try {
+    const list = await getCurricula();
+    const duplicate = list.find(c => c.name.toLowerCase() === req.body.name.toLowerCase());
+    if (duplicate) {
+      return res.status(400).json({ error: "A curriculum with this name already exists. Please find it in the list and add your review there." });
+    }
     const newItem = await addCurriculum(req.body);
     res.status(201).json(newItem);
   } catch (err) {
     console.error("POST /api/curricula error: ", err);
     res.status(500).json({ error: "Failed to save curriculum review" });
+  }
+});
+
+app.get('/api/curricula/:id/reviews', async (req, res) => {
+  try {
+    const reviews = await getCurriculumReviews(req.params.id);
+    res.json(reviews);
+  } catch (err) {
+    console.error("GET /api/curricula/:id/reviews error: ", err);
+    res.status(500).json({ error: "Failed to fetch curriculum reviews" });
+  }
+});
+
+app.post('/api/curricula/:id/reviews', async (req, res) => {
+  try {
+    const review = await addCurriculumReview(req.params.id, req.body);
+    res.status(201).json(review);
+  } catch (err) {
+    console.error("POST /api/curricula/:id/reviews error: ", err);
+    res.status(500).json({ error: "Failed to add curriculum review" });
   }
 });
 

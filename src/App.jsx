@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import GroveDialog, { Field, Notice, Rating } from './GroveDialog.jsx';
 
 // --- INLINE SVG ICONS (PREMIUM, ZERO-LATENCY) ---
 const DashboardIcon = () => (
@@ -36,6 +37,69 @@ const PlusIcon = () => (
 const BusinessIcon = () => (
   <svg viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
 );
+
+// ThemeSwitcher component
+function ThemeToggle() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('grove_theme') || 'system');
+
+  const updateTheme = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('grove_theme', newTheme);
+    
+    let resolvedTheme = newTheme;
+    if (newTheme === 'system') {
+      resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+  };
+
+  useEffect(() => {
+    if (theme === 'system') {
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const listener = (e) => {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      };
+      media.addEventListener('change', listener);
+      return () => media.removeEventListener('change', listener);
+    }
+  }, [theme]);
+
+  return (
+    <fieldset className="theme-toggle-group" style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <legend style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Theme Mode</legend>
+      <div style={{ display: 'flex', background: 'var(--color-bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
+        {['light', 'dark', 'system'].map((t) => (
+          <label
+            key={t}
+            style={{
+              flex: 1,
+              textAlign: 'center',
+              fontSize: '0.75rem',
+              padding: '6px 0',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: theme === t ? '700' : '500',
+              background: theme === t ? 'var(--color-primary)' : 'transparent',
+              color: theme === t ? 'white' : 'var(--color-text-muted)',
+              textTransform: 'capitalize',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <input
+              type="radio"
+              name="theme-selection"
+              value={t}
+              checked={theme === t}
+              onChange={() => updateTheme(t)}
+              style={{ display: 'none' }}
+            />
+            {t}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 export default function App() {
   // Navigation State
@@ -78,6 +142,9 @@ export default function App() {
   const [showCurriculumModal, setShowCurriculumModal] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [subUserError, setSubUserError] = useState(null);
+  const [subUserSuccess, setSubUserSuccess] = useState(null);
 
   // Form Input States
   const [newCurriculum, setNewCurriculum] = useState({
@@ -123,6 +190,13 @@ export default function App() {
   const [selectedCurriculumDetail, setSelectedCurriculumDetail] = useState(null);
   const [selectedTripDetail, setSelectedTripDetail] = useState(null);
   const [selectedAdDetail, setSelectedAdDetail] = useState(null);
+
+  // Curriculum reviews states
+  const [selectedReviews, setSelectedReviews] = useState([]);
+  const [showAddReviewSection, setShowAddReviewSection] = useState(false);
+  const [newReview, setNewReview] = useState({ rating: 5, description: '', favoritePart: '' });
+  const [reviewFormError, setReviewFormError] = useState(null);
+  const [reviewingCurriculumId, setReviewingCurriculumId] = useState(null);
 
   // Featured Carousel Index (Dashboard)
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -329,38 +403,51 @@ export default function App() {
     };
   }, [fieldTrips]);
 
-  // Star Rating Renderer
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalf = rating % 1 >= 0.5;
-
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(<StarFilledIcon key={i} />);
-      } else if (i === fullStars + 1 && hasHalf) {
-        stars.push(<StarHalfIcon key={i} />);
-      } else {
-        stars.push(<StarEmptyIcon key={i} />);
-      }
+  useEffect(() => {
+    if (selectedCurriculumDetail) {
+      fetch(`/api/curricula/${selectedCurriculumDetail.id}/reviews`)
+        .then(res => res.json())
+        .then(data => setSelectedReviews(data))
+        .catch(err => console.error("Error fetching reviews:", err));
+    } else {
+      setSelectedReviews([]);
+      setShowAddReviewSection(false);
+      setNewReview({ rating: 5, description: '', favoritePart: '' });
+      setReviewFormError(null);
     }
-    return <span className="rating-stars">{stars}</span>;
-  };
+  }, [selectedCurriculumDetail]);
+
+
 
   // Form Submissions
   const handleCurriculumSubmit = async (e) => {
     e.preventDefault();
-    if (!newCurriculum.name || !newCurriculum.description) return alert("Please fill out Name and Description.");
+    if (!newCurriculum.name || !newCurriculum.description) {
+      setFormError("Please fill out Name and Description.");
+      return;
+    }
     
     try {
-      const payload = { ...newCurriculum, gradeLevels: gradeLevelsSelected, userId: currentUser ? currentUser.id : 'parent-1' };
-      const res = await fetch('/api/curricula', {
+      const payload = { 
+        ...newCurriculum, 
+        gradeLevels: gradeLevelsSelected, 
+        userId: currentUser ? currentUser.id : 'parent-1',
+        userName: currentUser ? currentUser.name : 'Sarah Jenkins'
+      };
+      
+      const url = reviewingCurriculumId 
+        ? `/api/curricula/${reviewingCurriculumId}/reviews`
+        : '/api/curricula';
+        
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      
       if (res.ok) {
         setShowCurriculumModal(false);
+        setFormError(null);
         setNewCurriculum({
           name: '', subject: 'Math', delivery: 'online', grouping: 'grade',
           cost: '$$', rating: 5, favoritePart: '', answerKey: 'provided',
@@ -368,17 +455,48 @@ export default function App() {
           classParticipation: false, worldview: 'secular', videos: false, description: ''
         });
         setGradeLevelsSelected([]);
+        setReviewingCurriculumId(null);
         fetchData();
+      } else {
+        const err = await res.json();
+        setFormError(err.error || "Failed to save curriculum review.");
       }
     } catch (err) {
       console.error(err);
+      setFormError("An unexpected error occurred while saving the review.");
     }
   };
+
+  const handleOpenReviewForExisting = (curriculumDetail) => {
+    setSelectedCurriculumDetail(null);
+    setReviewingCurriculumId(curriculumDetail.id);
+    setNewCurriculum({
+      name: curriculumDetail.name,
+      subject: curriculumDetail.subject,
+      delivery: curriculumDetail.delivery,
+      grouping: curriculumDetail.grouping,
+      cost: curriculumDetail.cost,
+      rating: 5,
+      favoritePart: '',
+      answerKey: curriculumDetail.answerKey,
+      methodology: curriculumDetail.methodology,
+      onlineResources: !!curriculumDetail.onlineResources,
+      selfPaced: !!curriculumDetail.selfPaced,
+      classParticipation: !!curriculumDetail.classParticipation,
+      worldview: curriculumDetail.worldview,
+      videos: !!curriculumDetail.videos,
+      description: ''
+    });
+    setGradeLevelsSelected(curriculumDetail.gradeLevels || []);
+    setShowCurriculumModal(true);
+  };
+
 
   const handleTripSubmit = async (e) => {
     e.preventDefault();
     if (!newTrip.name || !newTrip.description || !newTrip.location || !newTrip.city || !newTrip.state) {
-      return alert("Please fill out Name, Location, City, State, and Description.");
+      setFormError("Please fill out Name, Location, City, State, and Description.");
+      return;
     }
 
     // Attempt geocoding via Nominatim
@@ -425,22 +543,28 @@ export default function App() {
       });
       if (res.ok) {
         setShowTripModal(false);
+        setFormError(null);
         setNewTrip({
           name: '', subject: 'Science', cost: '$$', rating: 5, description: '',
           location: '', gradeRecommendation: 'All Grades',
           city: '', state: '', zip: '', websiteUrl: ''
         });
         fetchData();
+      } else {
+        const err = await res.json();
+        setFormError(err.error || "Failed to post field trip.");
       }
     } catch (err) {
       console.error(err);
+      setFormError("An unexpected error occurred while posting field trip.");
     }
   };
 
   const handleAdSubmit = async (e) => {
     e.preventDefault();
     if (!newAd.businessName || !newAd.owner || !newAd.description || !newAd.contact || !newAd.businessType) {
-      return alert("Please fill out Business Name, Owner, Contact, Business Type, and Description.");
+      setFormError("Please fill out Business Name, Owner, Contact, Business Type, and Description.");
+      return;
     }
 
     try {
@@ -451,21 +575,27 @@ export default function App() {
       });
       if (res.ok) {
         setShowAdModal(false);
+        setFormError(null);
         setNewAd({
           owner: '', businessName: '', description: '', category: 'Cottage Industries',
           businessType: '', contact: '', link: ''
         });
         fetchData();
+      } else {
+        const err = await res.json();
+        setFormError(err.error || "Failed to publish business ad.");
       }
     } catch (err) {
       console.error(err);
+      setFormError("An unexpected error occurred while publishing the ad.");
     }
   };
 
   const handlePostSubmit = async (e) => {
     e.preventDefault();
     if (!newPost.title || !newPost.author || !newPost.content) {
-      return alert("Please fill out Title, Author/Your Name, and Post Content.");
+      setFormError("Please fill out Title, Author/Your Name, and Post Content.");
+      return;
     }
 
     try {
@@ -476,13 +606,18 @@ export default function App() {
       });
       if (res.ok) {
         setShowPostModal(false);
+        setFormError(null);
         setNewPost({
           author: '', title: '', content: '', category: 'General'
         });
         fetchData();
+      } else {
+        const err = await res.json();
+        setFormError(err.error || "Failed to publish post.");
       }
     } catch (err) {
       console.error(err);
+      setFormError("An unexpected error occurred while publishing the post.");
     }
   };
 
@@ -499,15 +634,16 @@ export default function App() {
           const user = await res.json();
           setCurrentUser(user);
           setShowAuthModal(false);
+          setFormError(null);
           setAuthForm({ email: '', password: '', name: '' });
           fetchData();
         } else {
           const err = await res.json();
-          alert(err.error || "Login failed");
+          setFormError(err.error || "Login failed");
         }
       } catch (err) {
         console.error(err);
-        alert("Login failed");
+        setFormError("Login failed");
       }
     } else {
       try {
@@ -520,15 +656,16 @@ export default function App() {
           const user = await res.json();
           setCurrentUser(user);
           setShowAuthModal(false);
+          setFormError(null);
           setAuthForm({ email: '', password: '', name: '' });
           fetchData();
         } else {
           const err = await res.json();
-          alert(err.error || "Registration failed");
+          setFormError(err.error || "Registration failed");
         }
       } catch (err) {
         console.error(err);
-        alert("Registration failed");
+        setFormError("Registration failed");
       }
     }
   };
@@ -536,6 +673,8 @@ export default function App() {
   const handleNewSubUserSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser || currentUser.role !== 'Parent') return;
+    setSubUserError(null);
+    setSubUserSuccess(null);
 
     try {
       const res = await fetch(`/api/users/${currentUser.id}/subusers`, {
@@ -547,14 +686,14 @@ export default function App() {
         const newSub = await res.json();
         setSubUsers(prev => [...prev, newSub]);
         setNewSubUserForm({ email: '', password: '', name: '', role: 'Student' });
-        alert("Child profile added successfully!");
+        setSubUserSuccess("Child profile added successfully!");
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to create child profile");
+        setSubUserError(err.error || "Failed to create child profile");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to create child profile");
+      setSubUserError("Failed to create child profile");
     }
   };
 
@@ -565,7 +704,7 @@ export default function App() {
         setPendingResources(prev => prev.filter(r => r.id !== id));
         fetchData();
       } else {
-        alert("Failed to approve resource");
+        setFormError("Failed to approve resource");
       }
     } catch (err) {
       console.error(err);
@@ -579,7 +718,7 @@ export default function App() {
       if (res.ok) {
         setPendingResources(prev => prev.filter(r => r.id !== id));
       } else {
-        alert("Failed to reject resource");
+        setFormError("Failed to reject resource");
       }
     } catch (err) {
       console.error(err);
@@ -589,11 +728,11 @@ export default function App() {
   const handleResourceSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) {
-      alert("You must be logged in to submit resources.");
+      setFormError("You must be logged in to submit resources.");
       return;
     }
     if (!newResource.name || !newResource.link || !newResource.description) {
-      alert("Please fill out all fields.");
+      setFormError("Please fill out all fields.");
       return;
     }
 
@@ -612,20 +751,16 @@ export default function App() {
 
       if (res.ok) {
         setShowResourceModal(false);
+        setFormError(null);
         setNewResource({ name: '', subject: 'Math', cost: 'free', link: '', description: '', type: 'website' });
-        if (currentUser.role === 'Moderator') {
-          alert("Resource published successfully!");
-        } else {
-          alert("Resource submitted successfully! It will appear once approved by a moderator.");
-        }
         fetchData();
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to submit resource");
+        setFormError(err.error || "Failed to submit resource");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to submit resource");
+      setFormError("Failed to submit resource");
     }
   };
 
@@ -786,6 +921,10 @@ export default function App() {
             )}
           </div>
 
+          <div style={{ padding: '0.75rem 1rem', margin: '0 1rem 1rem 1rem' }}>
+            <ThemeToggle />
+          </div>
+
           <nav>
             <ul className="nav-list">
               {/*
@@ -931,7 +1070,7 @@ export default function App() {
                             <div>
                               <div className="featured-meta">
                                 <span className="featured-subject">{item.subject}</span>
-                                {renderStars(item.rating)}
+                                <Rating value={item.rating} />
                               </div>
                               <h3 className="featured-title">{item.name}</h3>
                               <p className="featured-desc">{item.description}</p>
@@ -1030,6 +1169,8 @@ export default function App() {
                     <div style={{ borderLeft: '1px solid var(--color-accent-sage-light)', paddingLeft: '2rem' }}>
                       <h3 style={{ fontSize: '0.95rem', color: 'var(--color-primary)', marginBottom: '0.75rem' }}>Add Child Profile</h3>
                       <form onSubmit={handleNewSubUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {subUserError && <Notice kind="error">{subUserError}</Notice>}
+                        {subUserSuccess && <Notice kind="success">{subUserSuccess}</Notice>}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <label style={{ fontSize: '0.75rem', fontWeight: '600' }}>Child's Name</label>
                           <input 
@@ -1283,9 +1424,8 @@ export default function App() {
                           </span>
                         </div>
                         <h3 className="card-title">{item.name}</h3>
-                        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center' }}>
-                          {renderStars(item.rating)}
-                          <span className="rating-val">{item.rating.toFixed(1)}</span>
+                        <div style={{ marginBottom: '0.75rem' }}>
+                          <Rating value={item.rating} />
                         </div>
                         <p className="card-desc">{item.description}</p>
                         
@@ -1548,7 +1688,7 @@ export default function App() {
                   <div>
                     <div className="card-header-row">
                       <span className="subject-badge">{trip.subject}</span>
-                      {renderStars(trip.rating)}
+                      <Rating value={trip.rating} />
                     </div>
                     <h3 className="trip-title">{trip.name}</h3>
                     <div className="trip-location">
@@ -1805,753 +1945,650 @@ export default function App() {
       </main>
 
       {/* ======================================= */}
-      {/* MODAL: SUBMIT CURRICULUM REVIEW        */}
+      {/* ACCESSIBLE MODALS LAYER (GroveDialog)   */}
       {/* ======================================= */}
-      {showCurriculumModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <button className="modal-close" onClick={() => setShowCurriculumModal(false)}>×</button>
-            <h2 className="modal-title">Write a Curriculum Review</h2>
-            
-            <form onSubmit={handleCurriculumSubmit}>
-              <div className="form-group">
-                <label className="form-label">Curriculum Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="e.g. Beast Academy Math"
-                  required
-                  value={newCurriculum.name}
-                  onChange={(e) => setNewCurriculum(prev => ({...prev, name: e.target.value}))}
-                />
-              </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Subject</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.subject}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, subject: e.target.value}))}
-                  >
-                    <option value="Math">Mathematics</option>
-                    <option value="Science">Science</option>
-                    <option value="Language Arts">Language Arts & Lit</option>
-                    <option value="History">History & Social Studies</option>
-                    <option value="Art & Music">Art & Music</option>
-                    <option value="All Subjects">All Subjects / Unified</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Format</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.delivery}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, delivery: e.target.value}))}
-                  >
-                    <option value="online">Online Interface</option>
-                    <option value="printable">Printable PDF</option>
-                    <option value="consumable">Consumable Workbook</option>
-                  </select>
-                </div>
-              </div>
+      {/* 1. SHARE CURRICULUM REVIEW */}
+      <GroveDialog
+        open={showCurriculumModal}
+        onClose={() => { setShowCurriculumModal(false); setFormError(null); setReviewingCurriculumId(null); }}
+        title={reviewingCurriculumId ? `Write a Review for ${newCurriculum.name}` : "Write a Curriculum Review"}
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowCurriculumModal(false); setFormError(null); setReviewingCurriculumId(null); }}>Cancel</button>
+          <button type="submit" form="curriculum-form" className="btn btn-primary">Save Review</button>
+        </>}
+      >
+        <form id="curriculum-form" onSubmit={handleCurriculumSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Grouping Style</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.grouping}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, grouping: e.target.value}))}
-                  >
-                    <option value="grade">Grade-based</option>
-                    <option value="family">Family-based (Multi-grade)</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Cost Range</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.cost}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, cost: e.target.value}))}
-                  >
-                    <option value="Free">Free</option>
-                    <option value="$">$ (Low Cost)</option>
-                    <option value="$$">$$ (Medium Cost)</option>
-                    <option value="$$$">$$$ (High Cost)</option>
-                  </select>
-                </div>
-              </div>
+          <Field id="curr-name" label="Curriculum Name" required>
+            <input
+              type="text"
+              placeholder="e.g. Beast Academy Math"
+              value={newCurriculum.name}
+              onChange={(e) => setNewCurriculum(prev => ({...prev, name: e.target.value}))}
+              disabled={!!reviewingCurriculumId}
+            />
+          </Field>
 
-              {/* Target Grade Levels Selection Grid (K-12 checkboxes) */}
-              <div className="form-group">
-                <label className="form-label">Target Grade Levels (Select all that apply)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(48px, 1fr))', gap: '0.4rem', marginTop: '0.4rem' }}>
-                  {['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map(grade => {
-                    const isSelected = gradeLevelsSelected.includes(grade);
-                    return (
-                      <button
-                        type="button"
-                        key={grade}
-                        onClick={() => {
-                          setGradeLevelsSelected(prev =>
-                            prev.includes(grade) ? prev.filter(g => g !== grade) : [...prev, grade]
-                          );
-                        }}
-                        style={{
-                          padding: '0.35rem 0.2rem',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: '6px',
-                          background: isSelected ? 'var(--color-primary)' : 'var(--color-bg)',
-                          color: isSelected ? 'white' : 'var(--color-text-dark)',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          textAlign: 'center',
-                          fontSize: '0.8rem'
-                        }}
-                      >
-                        {grade}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+          <div className="form-row">
+            <Field id="curr-subject" label="Subject" required>
+              <select
+                value={newCurriculum.subject}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, subject: e.target.value}))}
+              >
+                <option value="Math">Math</option>
+                <option value="Science">Science</option>
+                <option value="Language Arts">Language Arts & Phonics</option>
+                <option value="History">History & Geography</option>
+                <option value="Art & Music">Art & Music</option>
+                <option value="Foreign Language">Foreign Language</option>
+                <option value="Elective">Elective / Other</option>
+              </select>
+            </Field>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Rating (1-5 Stars)</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.rating}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, rating: parseFloat(e.target.value)}))}
-                  >
-                    <option value="5">⭐⭐⭐⭐⭐ (5 / 5)</option>
-                    <option value="4">⭐⭐⭐⭐ (4 / 5)</option>
-                    <option value="3">⭐⭐⭐ (3 / 5)</option>
-                    <option value="2">⭐⭐ (2 / 5)</option>
-                    <option value="1">⭐ (1 / 5)</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Worldview</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.worldview}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, worldview: e.target.value}))}
-                  >
-                    <option value="secular">Secular</option>
-                    <option value="nonsecular">Nonsecular / Faith-based</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Answer Key Pricing</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.answerKey}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, answerKey: e.target.value}))}
-                  >
-                    <option value="provided">Included in price</option>
-                    <option value="extra">Costs extra</option>
-                    <option value="self-graded">Self-graded by student</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Methodology</label>
-                  <select 
-                    className="form-control"
-                    value={newCurriculum.methodology}
-                    onChange={(e) => setNewCurriculum(prev => ({...prev, methodology: e.target.value}))}
-                  >
-                    <option value="spiral">Spiral Review (incremental steps)</option>
-                    <option value="mastery">Mastery (focused topics)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Checklist details */}
-              <div className="form-group">
-                <label className="form-label">Additional Features</label>
-                <div className="checkbox-group">
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={newCurriculum.onlineResources}
-                      onChange={(e) => setNewCurriculum(prev => ({...prev, onlineResources: e.target.checked}))}
-                    />
-                    <span>Provides extra online resources</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={newCurriculum.selfPaced}
-                      onChange={(e) => setNewCurriculum(prev => ({...prev, selfPaced: e.target.checked}))}
-                    />
-                    <span>Self-paced</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={newCurriculum.classParticipation}
-                      onChange={(e) => setNewCurriculum(prev => ({...prev, classParticipation: e.target.checked}))}
-                    />
-                    <span>Includes live online class participation</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={newCurriculum.videos}
-                      onChange={(e) => setNewCurriculum(prev => ({...prev, videos: e.target.checked}))}
-                    />
-                    <span>Includes video instruction elements</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Overall Description</label>
-                <textarea 
-                  className="form-control" 
-                  rows="3" 
-                  placeholder="Review explanation of the curriculum structure..."
-                  required
-                  value={newCurriculum.description}
-                  onChange={(e) => setNewCurriculum(prev => ({...prev, description: e.target.value}))}
-                ></textarea>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Your Favorite Part</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="What did you and your students love most?"
-                  value={newCurriculum.favoritePart}
-                  onChange={(e) => setNewCurriculum(prev => ({...prev, favoritePart: e.target.value}))}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCurriculumModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Review</button>
-              </div>
-            </form>
+            <Field id="curr-delivery" label="Format / Delivery" required>
+              <select
+                value={newCurriculum.delivery}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, delivery: e.target.value}))}
+              >
+                <option value="online">Online Platform</option>
+                <option value="textbook">Textbook / Workbook</option>
+                <option value="consumable">Consumable Workbooks</option>
+                <option value="printable">Printable PDF / E-Book</option>
+                <option value="unit-study">Unit Study Style</option>
+              </select>
+            </Field>
           </div>
-        </div>
-      )}
 
-      {/* ======================================= */}
-      {/* MODAL: SHARE FIELD TRIP                 */}
-      {/* ======================================= */}
-      {showTripModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <button className="modal-close" onClick={() => setShowTripModal(false)}>×</button>
-            <h2 className="modal-title">Share a Field Trip Idea</h2>
+          <div className="form-row">
+            <Field id="curr-grouping" label="Grouping Style" required>
+              <select
+                value={newCurriculum.grouping}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, grouping: e.target.value}))}
+              >
+                <option value="grade">Independent (by grade)</option>
+                <option value="family">Family Style (multiple ages)</option>
+                <option value="co-op">Co-Op / Group Class</option>
+              </select>
+            </Field>
 
-            <form onSubmit={handleTripSubmit}>
-              <div className="form-group">
-                <label className="form-label">Location / Site Name</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="e.g. Metro Space & Rocket Museum"
-                  required
-                  value={newTrip.name}
-                  onChange={(e) => setNewTrip(prev => ({...prev, name: e.target.value}))}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Academic Focus</label>
-                  <select 
-                    className="form-control"
-                    value={newTrip.subject}
-                    onChange={(e) => setNewTrip(prev => ({...prev, subject: e.target.value}))}
-                  >
-                    <option value="Science">Science & Biology</option>
-                    <option value="History">History & Social Studies</option>
-                    <option value="Art & Music">Art & Creative Expression</option>
-                    <option value="Mathematics">Practical Math/STEM</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Cost Level</label>
-                  <select 
-                    className="form-control"
-                    value={newTrip.cost}
-                    onChange={(e) => setNewTrip(prev => ({...prev, cost: e.target.value}))}
-                  >
-                    <option value="free">Free Admission</option>
-                    <option value="$">$ (Low Cost)</option>
-                    <option value="$$">$$ (Medium Cost)</option>
-                    <option value="$$$">$$$ (High Cost)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Address / General Location</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. 100 Main St"
-                    required
-                    value={newTrip.location}
-                    onChange={(e) => setNewTrip(prev => ({...prev, location: e.target.value}))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Recommended Ages/Grades</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. Elementary, Middle School"
-                    required
-                    value={newTrip.gradeRecommendation}
-                    onChange={(e) => setNewTrip(prev => ({...prev, gradeRecommendation: e.target.value}))}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">City</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. Austin"
-                    required
-                    value={newTrip.city}
-                    onChange={(e) => setNewTrip(prev => ({...prev, city: e.target.value}))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">State</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. TX"
-                    required
-                    value={newTrip.state}
-                    onChange={(e) => setNewTrip(prev => ({...prev, state: e.target.value}))}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Zip Code (Optional)</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. 78754"
-                    value={newTrip.zip}
-                    onChange={(e) => setNewTrip(prev => ({...prev, zip: e.target.value}))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Website Link (Optional)</label>
-                  <input 
-                    type="url" 
-                    className="form-control" 
-                    placeholder="e.g. https://www.mos.org"
-                    value={newTrip.websiteUrl}
-                    onChange={(e) => setNewTrip(prev => ({...prev, websiteUrl: e.target.value}))}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Rating</label>
-                <select 
-                  className="form-control"
-                  value={newTrip.rating}
-                  onChange={(e) => setNewTrip(prev => ({...prev, rating: parseInt(e.target.value)}))}
-                >
-                  <option value="5">⭐⭐⭐⭐⭐ (5 / 5)</option>
-                  <option value="4">⭐⭐⭐⭐ (4 / 5)</option>
-                  <option value="3">⭐⭐⭐ (3 / 5)</option>
-                  <option value="2">⭐⭐ (2 / 5)</option>
-                  <option value="1">⭐ (1 / 5)</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Details / Description</label>
-                <textarea 
-                  className="form-control" 
-                  rows="3" 
-                  placeholder="Review instructions, discount codes, or highlight exhibits..."
-                  required
-                  value={newTrip.description}
-                  onChange={(e) => setNewTrip(prev => ({...prev, description: e.target.value}))}
-                ></textarea>
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowTripModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Post Field Trip</button>
-              </div>
-            </form>
+            <Field id="curr-cost" label="Cost Level" required>
+              <select
+                value={newCurriculum.cost}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, cost: e.target.value}))}
+              >
+                <option value="free">Free</option>
+                <option value="$">$ (Under $50)</option>
+                <option value="$$">$$ ($50 - $150)</option>
+                <option value="$$$">$$$ (Over $150)</option>
+              </select>
+            </Field>
           </div>
-        </div>
-      )}
 
-      {/* ======================================= */}
-      {/* MODAL: POST MOMS BUSINESS AD            */}
-      {/* ======================================= */}
-      {showAdModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <button className="modal-close" onClick={() => setShowAdModal(false)}>×</button>
-            <h2 className="modal-title">List on Business Board</h2>
+          <div className="form-row">
+            <Field id="curr-rating" label="Your Rating" required>
+              <select
+                value={newCurriculum.rating}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, rating: parseInt(e.target.value)}))}
+              >
+                <option value="5">⭐⭐⭐⭐⭐ (5 / 5)</option>
+                <option value="4">⭐⭐⭐⭐ (4 / 5)</option>
+                <option value="3">⭐⭐⭐ (3 / 5)</option>
+                <option value="2">⭐⭐ (2 / 5)</option>
+                <option value="1">⭐ (1 / 5)</option>
+              </select>
+            </Field>
 
-            <form onSubmit={handleAdSubmit}>
-              <div className="form-group">
-                <label className="form-label">Business or Service Title</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="e.g. Phonics Tutoring & Reading Services"
-                  required
-                  value={newAd.businessName}
-                  onChange={(e) => setNewAd(prev => ({...prev, businessName: e.target.value}))}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Business Type / Specialty</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="e.g. Baked Goods, IT Support, Music Lessons, Tutoring"
-                  required
-                  value={newAd.businessType}
-                  onChange={(e) => setNewAd(prev => ({...prev, businessType: e.target.value}))}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Contact Person (Owner Name)</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. Sarah Jenkins"
-                    required
-                    value={newAd.owner}
-                    onChange={(e) => setNewAd(prev => ({...prev, owner: e.target.value}))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select 
-                    className="form-control"
-                    value={newAd.category}
-                    onChange={(e) => setNewAd(prev => ({...prev, category: e.target.value}))}
-                  >
-                    <option value="Cottage Industries">Cottage Industries</option>
-                    <option value="Storefronts">Storefronts</option>
-                    <option value="Academic Services">Academic Services</option>
-                    <option value="Creative & Extracurriculars">Creative & Extracurriculars</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Contact Email / Phone</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. contact@email.com"
-                    required
-                    value={newAd.contact}
-                    onChange={(e) => setNewAd(prev => ({...prev, contact: e.target.value}))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Website Link (Optional)</label>
-                  <input 
-                    type="url" 
-                    className="form-control" 
-                    placeholder="e.g. https://www.mybusiness.com"
-                    value={newAd.link}
-                    onChange={(e) => setNewAd(prev => ({...prev, link: e.target.value}))}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Description of Business / Service</label>
-                <textarea 
-                  className="form-control" 
-                  rows="4" 
-                  placeholder="Outline your tutoring rates, lessons structure, co-op dates, or products pricing..."
-                  required
-                  value={newAd.description}
-                  onChange={(e) => setNewAd(prev => ({...prev, description: e.target.value}))}
-                ></textarea>
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAdModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Publish Ad</button>
-              </div>
-            </form>
+            <Field id="curr-answerkey" label="Answer Key Availability" required>
+              <select
+                value={newCurriculum.answerKey}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, answerKey: e.target.value}))}
+              >
+                <option value="provided">Included / Free</option>
+                <option value="extra">Extra Purchase Required</option>
+                <option value="self-graded">Self-Graded / Not Needed</option>
+              </select>
+            </Field>
           </div>
-        </div>
-      )}
 
-      {/* ======================================= */}
-      {/* MODAL: CREATE COMMUNITY POST           */}
-      {/* ======================================= */}
-      {showPostModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
-            <button className="modal-close" onClick={() => setShowPostModal(false)}>×</button>
-            <h2 className="modal-title">Share a Community Update / Post</h2>
+          <div className="form-row">
+            <Field id="curr-methodology" label="Educational Methodology" required>
+              <select
+                value={newCurriculum.methodology}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, methodology: e.target.value}))}
+              >
+                <option value="mastery">Mastery (deep-dive focus)</option>
+                <option value="spiral">Spiral Review (incremental steps)</option>
+                <option value="unschool">Interest-Led / Unschooling</option>
+              </select>
+            </Field>
 
-            <form onSubmit={handlePostSubmit}>
-              <div className="form-group">
-                <label className="form-label">Post Title</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="e.g. Suggestions for homeschool field trips in June?"
-                  required
-                  value={newPost.title}
-                  onChange={(e) => setNewPost(prev => ({...prev, title: e.target.value}))}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Your Name</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="e.g. Sarah Jenkins"
-                    required
-                    value={newPost.author}
-                    onChange={(e) => setNewPost(prev => ({...prev, author: e.target.value}))}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <select 
-                    className="form-control"
-                    value={newPost.category}
-                    onChange={(e) => setNewPost(prev => ({...prev, category: e.target.value}))}
-                  >
-                    <option value="General">General / Updates</option>
-                    <option value="Questions">Questions / Help Needed</option>
-                    <option value="Advice">Advice / Reviews</option>
-                    <option value="Meetups">Co-ops / Meetups</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Post Content</label>
-                <textarea 
-                  className="form-control" 
-                  rows="5" 
-                  placeholder="Type your message here..."
-                  required
-                  value={newPost.content}
-                  onChange={(e) => setNewPost(prev => ({...prev, content: e.target.value}))}
-                ></textarea>
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowPostModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Publish Post</button>
-              </div>
-            </form>
+            <Field id="curr-worldview" label="Worldview Focus" required>
+              <select
+                value={newCurriculum.worldview}
+                onChange={(e) => setNewCurriculum(prev => ({...prev, worldview: e.target.value}))}
+              >
+                <option value="secular">Secular</option>
+                <option value="nonsecular">Faith-Based / Non-Secular</option>
+                <option value="neutral">Secular-Friendly / Neutral</option>
+              </select>
+            </Field>
           </div>
-        </div>
-      )}
 
-      {/* ======================================= */}
-      {/* MODAL: SUBMIT RESOURCE                  */}
-      {/* ======================================= */}
-      {showResourceModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
-            <button className="modal-close" onClick={() => setShowResourceModal(false)}>×</button>
-            <h2 className="modal-title">Submit Recommended Resource</h2>
-
-            <form onSubmit={handleResourceSubmit}>
-              <div className="form-group">
-                <label className="form-label">Resource Name / Title</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="e.g. Khan Academy"
-                  required
-                  value={newResource.name}
-                  onChange={(e) => setNewResource(prev => ({...prev, name: e.target.value}))}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Subject</label>
-                  <select 
-                    className="form-control"
-                    value={newResource.subject}
-                    onChange={(e) => setNewResource(prev => ({...prev, subject: e.target.value}))}
-                  >
-                    <option value="Math">Math</option>
-                    <option value="Science">Science</option>
-                    <option value="Language Arts">Language Arts</option>
-                    <option value="History">History</option>
-                    <option value="Foreign Language">Foreign Language</option>
-                    <option value="All Subjects">All Subjects</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Cost Range</label>
-                  <select 
-                    className="form-control"
-                    value={newResource.cost}
-                    onChange={(e) => setNewResource(prev => ({...prev, cost: e.target.value}))}
-                  >
-                    <option value="free">Free</option>
-                    <option value="low-cost">Low Cost</option>
-                    <option value="subscription">Subscription</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Resource Type</label>
-                  <select 
-                    className="form-control"
-                    value={newResource.type}
-                    onChange={(e) => setNewResource(prev => ({...prev, type: e.target.value}))}
-                  >
-                    <option value="website">Web Link / Website</option>
-                    <option value="video">Video Channel / Playlist</option>
-                    <option value="printable">Printable / Worksheet</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Website URL</label>
-                  <input 
-                    type="url" 
-                    className="form-control" 
-                    placeholder="e.g. https://www.khanacademy.org"
-                    required
-                    value={newResource.link}
-                    onChange={(e) => setNewResource(prev => ({...prev, link: e.target.value}))}
+          <fieldset className="field-group">
+            <legend>Target Grade Levels</legend>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+              {['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map(grade => (
+                <label className="checkbox-label" key={grade}>
+                  <input
+                    type="checkbox"
+                    checked={gradeLevelsSelected.includes(grade)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setGradeLevelsSelected(prev => [...prev, grade]);
+                      } else {
+                        setGradeLevelsSelected(prev => prev.filter(g => g !== grade));
+                      }
+                    }}
                   />
-                </div>
-              </div>
+                  <span>Grade {grade}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-              <div className="form-group">
-                <label className="form-label">Short Description</label>
-                <textarea 
-                  className="form-control" 
-                  rows="3" 
-                  placeholder="Explain why you recommend this resource..."
-                  required
-                  value={newResource.description}
-                  onChange={(e) => setNewResource(prev => ({...prev, description: e.target.value}))}
-                ></textarea>
-              </div>
-
-              <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowResourceModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Submit for Approval</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================= */}
-      {/* MODAL: USER AUTHENTICATION (SIGN IN)    */}
-      {/* ======================================= */}
-      {showAuthModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
-            <button className="modal-close" onClick={() => setShowAuthModal(false)}>×</button>
-            <h2 className="modal-title">{authMode === 'login' ? 'Sign In' : 'Create Account'}</h2>
-
-            <form onSubmit={handleAuthSubmit}>
-              {authMode === 'register' && (
-                <div className="form-group">
-                  <label className="form-label">Full Name</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="Sarah Jenkins"
-                    required
-                    value={authForm.name}
-                    onChange={(e) => setAuthForm(prev => ({...prev, name: e.target.value}))}
-                  />
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="form-label">Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  placeholder="parent@example.com"
-                  required
-                  value={authForm.email}
-                  onChange={(e) => setAuthForm(prev => ({...prev, email: e.target.value}))}
+          <fieldset className="field-group">
+            <legend>Key Features</legend>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={newCurriculum.onlineResources}
+                  onChange={(e) => setNewCurriculum(prev => ({...prev, onlineResources: e.target.checked}))}
                 />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  placeholder="••••••••"
-                  required
-                  value={authForm.password}
-                  onChange={(e) => setAuthForm(prev => ({...prev, password: e.target.value}))}
+                <span>Includes digital resources / links</span>
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={newCurriculum.selfPaced}
+                  onChange={(e) => setNewCurriculum(prev => ({...prev, selfPaced: e.target.checked}))}
                 />
-              </div>
+                <span>Self-Paced / Child-led</span>
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={newCurriculum.classParticipation}
+                  onChange={(e) => setNewCurriculum(prev => ({...prev, classParticipation: e.target.checked}))}
+                />
+                <span>Requires group/class attendance</span>
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={newCurriculum.videos}
+                  onChange={(e) => setNewCurriculum(prev => ({...prev, videos: e.target.checked}))}
+                />
+                <span>Includes video instruction</span>
+              </label>
+            </div>
+          </fieldset>
 
-              <div className="form-actions" style={{ flexDirection: 'column', gap: '0.75rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                  {authMode === 'login' ? 'Sign In' : 'Register Parent Account'}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setAuthMode(prev => prev === 'login' ? 'register' : 'login')}
-                  style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  {authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Sign In"}
-                </button>
-              </div>
-            </form>
+          <Field id="curr-description" label="Overall Description" required>
+            <textarea
+              className="form-control"
+              rows="6"
+              maxLength={3000}
+              placeholder="Review explanation of the curriculum structure..."
+              value={newCurriculum.description}
+              onChange={(e) => setNewCurriculum(prev => ({...prev, description: e.target.value}))}
+            />
+          </Field>
+          <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '-0.75rem', marginBottom: '1rem' }}>
+            {(newCurriculum.description || '').length} / 3000 characters
           </div>
-        </div>
-      )}
 
-      {/* ======================================= */}
-      {/* MODAL: CURRICULUM DETAIL VIEW          */}
-      {/* ======================================= */}
-      {selectedCurriculumDetail && (
-        <div className="modal-overlay" onClick={() => setSelectedCurriculumDetail(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
-            <button className="modal-close" onClick={() => setSelectedCurriculumDetail(null)}>×</button>
-            
+          <Field id="curr-favorite" label="Your Favorite Part">
+            <textarea
+              className="form-control"
+              rows="3"
+              maxLength={500}
+              placeholder="What did you and your students love most?"
+              value={newCurriculum.favoritePart}
+              onChange={(e) => setNewCurriculum(prev => ({...prev, favoritePart: e.target.value}))}
+            />
+          </Field>
+          <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '-0.75rem', marginBottom: '1rem' }}>
+            {(newCurriculum.favoritePart || '').length} / 500 characters
+          </div>
+        </form>
+      </GroveDialog>
+
+      {/* 2. SHARE FIELD TRIP */}
+      <GroveDialog
+        open={showTripModal}
+        onClose={() => { setShowTripModal(false); setFormError(null); }}
+        title="Share a Field Trip Idea"
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowTripModal(false); setFormError(null); }}>Cancel</button>
+          <button type="submit" form="trip-form" className="btn btn-primary">Post Field Trip</button>
+        </>}
+      >
+        <form id="trip-form" onSubmit={handleTripSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          <Field id="trip-name" label="Location / Site Name" required>
+            <input
+              type="text"
+              placeholder="e.g. Metro Space & Rocket Museum"
+              value={newTrip.name}
+              onChange={(e) => setNewTrip(prev => ({...prev, name: e.target.value}))}
+            />
+          </Field>
+
+          <div className="form-row">
+            <Field id="trip-subject" label="Academic Focus" required>
+              <select
+                value={newTrip.subject}
+                onChange={(e) => setNewTrip(prev => ({...prev, subject: e.target.value}))}
+              >
+                <option value="Science">Science & Biology</option>
+                <option value="History">History & Social Studies</option>
+                <option value="Art & Music">Art & Creative Expression</option>
+                <option value="Mathematics">Practical Math/STEM</option>
+              </select>
+            </Field>
+
+            <Field id="trip-cost" label="Cost Level" required>
+              <select
+                value={newTrip.cost}
+                onChange={(e) => setNewTrip(prev => ({...prev, cost: e.target.value}))}
+              >
+                <option value="free">Free Admission</option>
+                <option value="$">$ (Low Cost)</option>
+                <option value="$$">$$ (Medium Cost)</option>
+                <option value="$$$">$$$ (High Cost)</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="form-row">
+            <Field id="trip-location" label="Address / General Location" required>
+              <input
+                type="text"
+                placeholder="e.g. 100 Main St"
+                value={newTrip.location}
+                onChange={(e) => setNewTrip(prev => ({...prev, location: e.target.value}))}
+              />
+            </Field>
+
+            <Field id="trip-grade" label="Recommended Ages/Grades" required>
+              <input
+                type="text"
+                placeholder="e.g. Elementary, Middle School"
+                value={newTrip.gradeRecommendation}
+                onChange={(e) => setNewTrip(prev => ({...prev, gradeRecommendation: e.target.value}))}
+              />
+            </Field>
+          </div>
+
+          <div className="form-row">
+            <Field id="trip-city" label="City" required>
+              <input
+                type="text"
+                placeholder="e.g. Austin"
+                value={newTrip.city}
+                onChange={(e) => setNewTrip(prev => ({...prev, city: e.target.value}))}
+              />
+            </Field>
+
+            <Field id="trip-state" label="State" required>
+              <input
+                type="text"
+                placeholder="e.g. TX"
+                value={newTrip.state}
+                onChange={(e) => setNewTrip(prev => ({...prev, state: e.target.value}))}
+              />
+            </Field>
+          </div>
+
+          <div className="form-row">
+            <Field id="trip-zip" label="Zip Code (Optional)">
+              <input
+                type="text"
+                placeholder="e.g. 78754"
+                value={newTrip.zip}
+                onChange={(e) => setNewTrip(prev => ({...prev, zip: e.target.value}))}
+              />
+            </Field>
+
+            <Field id="trip-web" label="Website Link (Optional)">
+              <input
+                type="url"
+                placeholder="e.g. https://www.mos.org"
+                value={newTrip.websiteUrl}
+                onChange={(e) => setNewTrip(prev => ({...prev, websiteUrl: e.target.value}))}
+              />
+            </Field>
+          </div>
+
+          <Field id="trip-rating" label="Rating" required>
+            <select
+              value={newTrip.rating}
+              onChange={(e) => setNewTrip(prev => ({...prev, rating: parseInt(e.target.value)}))}
+            >
+              <option value="5">⭐⭐⭐⭐⭐ (5 / 5)</option>
+              <option value="4">⭐⭐⭐⭐ (4 / 5)</option>
+              <option value="3">⭐⭐⭐ (3 / 5)</option>
+              <option value="2">⭐⭐ (2 / 5)</option>
+              <option value="1">⭐ (1 / 5)</option>
+            </select>
+          </Field>
+
+          <Field id="trip-desc" label="Details / Description" required>
+            <textarea
+              className="form-control"
+              rows="3"
+              placeholder="Review instructions, discount codes, or highlight exhibits..."
+              value={newTrip.description}
+              onChange={(e) => setNewTrip(prev => ({...prev, description: e.target.value}))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
+
+      {/* 3. List Business Ad */}
+      <GroveDialog
+        open={showAdModal}
+        onClose={() => { setShowAdModal(false); setFormError(null); }}
+        title="List on Business Board"
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowAdModal(false); setFormError(null); }}>Cancel</button>
+          <button type="submit" form="ad-form" className="btn btn-primary">Publish Ad</button>
+        </>}
+      >
+        <form id="ad-form" onSubmit={handleAdSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          <Field id="ad-name" label="Business or Service Title" required>
+            <input
+              type="text"
+              placeholder="e.g. Phonics Tutoring & Reading Services"
+              value={newAd.businessName}
+              onChange={(e) => setNewAd(prev => ({...prev, businessName: e.target.value}))}
+            />
+          </Field>
+
+          <Field id="ad-type" label="Business Type / Specialty" required>
+            <input
+              type="text"
+              placeholder="e.g. Baked Goods, IT Support, Music Lessons, Tutoring"
+              value={newAd.businessType}
+              onChange={(e) => setNewAd(prev => ({...prev, businessType: e.target.value}))}
+            />
+          </Field>
+
+          <div className="form-row">
+            <Field id="ad-owner" label="Contact Person (Owner Name)" required>
+              <input
+                type="text"
+                placeholder="e.g. Sarah Jenkins"
+                value={newAd.owner}
+                onChange={(e) => setNewAd(prev => ({...prev, owner: e.target.value}))}
+              />
+            </Field>
+
+            <Field id="ad-cat" label="Category" required>
+              <select
+                value={newAd.category}
+                onChange={(e) => setNewAd(prev => ({...prev, category: e.target.value}))}
+              >
+                <option value="Cottage Industries">Cottage Industries</option>
+                <option value="Storefronts">Storefronts</option>
+                <option value="Academic Services">Academic Services</option>
+                <option value="Creative & Extracurriculars">Creative & Extracurriculars</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="form-row">
+            <Field id="ad-contact" label="Contact Email / Phone" required>
+              <input
+                type="text"
+                placeholder="e.g. contact@email.com"
+                value={newAd.contact}
+                onChange={(e) => setNewAd(prev => ({...prev, contact: e.target.value}))}
+              />
+            </Field>
+
+            <Field id="ad-link" label="Website Link (Optional)">
+              <input
+                type="url"
+                placeholder="e.g. https://www.mybusiness.com"
+                value={newAd.link}
+                onChange={(e) => setNewAd(prev => ({...prev, link: e.target.value}))}
+              />
+            </Field>
+          </div>
+
+          <Field id="ad-desc" label="Description of Business / Service" required>
+            <textarea
+              className="form-control"
+              rows="4"
+              placeholder="Outline your tutoring rates, lessons structure, co-op dates, or products pricing..."
+              value={newAd.description}
+              onChange={(e) => setNewAd(prev => ({...prev, description: e.target.value}))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
+
+      {/* 4. SHARE COMMUNITY POST */}
+      <GroveDialog
+        open={showPostModal}
+        onClose={() => { setShowPostModal(false); setFormError(null); }}
+        title="Share a Community Update / Post"
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowPostModal(false); setFormError(null); }}>Cancel</button>
+          <button type="submit" form="post-form" className="btn btn-primary">Publish Post</button>
+        </>}
+      >
+        <form id="post-form" onSubmit={handlePostSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          <Field id="post-title" label="Post Title" required>
+            <input
+              type="text"
+              placeholder="e.g. Suggestions for homeschool field trips in June?"
+              value={newPost.title}
+              onChange={(e) => setNewPost(prev => ({...prev, title: e.target.value}))}
+            />
+          </Field>
+
+          <div className="form-row">
+            <Field id="post-author" label="Your Name" required>
+              <input
+                type="text"
+                placeholder="e.g. Sarah Jenkins"
+                value={newPost.author}
+                onChange={(e) => setNewPost(prev => ({...prev, author: e.target.value}))}
+              />
+            </Field>
+
+            <Field id="post-cat" label="Category" required>
+              <select
+                value={newPost.category}
+                onChange={(e) => setNewPost(prev => ({...prev, category: e.target.value}))}
+              >
+                <option value="General">General / Updates</option>
+                <option value="Questions">Questions / Help Needed</option>
+                <option value="Advice">Advice / Reviews</option>
+                <option value="Meetups">Co-ops / Meetups</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field id="post-content" label="Post Content" required>
+            <textarea
+              className="form-control"
+              rows="5"
+              placeholder="Type your message here..."
+              value={newPost.content}
+              onChange={(e) => setNewPost(prev => ({...prev, content: e.target.value}))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
+
+      {/* 5. SUBMIT RESOURCE */}
+      <GroveDialog
+        open={showResourceModal}
+        onClose={() => { setShowResourceModal(false); setFormError(null); }}
+        title="Submit Recommended Resource"
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowResourceModal(false); setFormError(null); }}>Cancel</button>
+          <button type="submit" form="resource-form" className="btn btn-primary">Submit for Approval</button>
+        </>}
+      >
+        <form id="resource-form" onSubmit={handleResourceSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          <Field id="res-form-name" label="Resource Name / Title" required>
+            <input
+              type="text"
+              placeholder="e.g. Khan Academy"
+              value={newResource.name}
+              onChange={(e) => setNewResource(prev => ({...prev, name: e.target.value}))}
+            />
+          </Field>
+
+          <div className="form-row">
+            <Field id="res-form-subject" label="Subject" required>
+              <select
+                value={newResource.subject}
+                onChange={(e) => setNewResource(prev => ({...prev, subject: e.target.value}))}
+              >
+                <option value="Math">Math</option>
+                <option value="Science">Science</option>
+                <option value="Language Arts">Language Arts</option>
+                <option value="History">History</option>
+                <option value="Foreign Language">Foreign Language</option>
+                <option value="All Subjects">All Subjects</option>
+                <option value="Other">Other</option>
+              </select>
+            </Field>
+
+            <Field id="res-form-cost" label="Cost Range" required>
+              <select
+                value={newResource.cost}
+                onChange={(e) => setNewResource(prev => ({...prev, cost: e.target.value}))}
+              >
+                <option value="free">Free</option>
+                <option value="low-cost">Low Cost</option>
+                <option value="subscription">Subscription</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="form-row">
+            <Field id="res-form-type" label="Resource Type" required>
+              <select
+                value={newResource.type}
+                onChange={(e) => setNewResource(prev => ({...prev, type: e.target.value}))}
+              >
+                <option value="website">Web Link / Website</option>
+                <option value="video">Video Channel / Playlist</option>
+                <option value="printable">Printable / Worksheet</option>
+              </select>
+            </Field>
+
+            <Field id="res-form-link" label="Website URL" required>
+              <input
+                type="url"
+                placeholder="e.g. https://www.khanacademy.org"
+                value={newResource.link}
+                onChange={(e) => setNewResource(prev => ({...prev, link: e.target.value}))}
+              />
+            </Field>
+          </div>
+
+          <Field id="res-form-desc" label="Short Description" required>
+            <textarea
+              className="form-control"
+              rows="3"
+              placeholder="Explain why you recommend this resource..."
+              value={newResource.description}
+              onChange={(e) => setNewResource(prev => ({...prev, description: e.target.value}))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
+
+      {/* 6. USER AUTHENTICATION */}
+      <GroveDialog
+        open={showAuthModal}
+        onClose={() => { setShowAuthModal(false); setFormError(null); }}
+        title={authMode === 'login' ? 'Sign In' : 'Create Account'}
+        footer={<div className="form-actions" style={{ width: '100%', flexDirection: 'column', gap: '0.75rem' }}>
+          <button type="submit" form="auth-form" className="btn btn-primary" style={{ width: '100%' }}>
+            {authMode === 'login' ? 'Sign In' : 'Register Parent Account'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setAuthMode(prev => prev === 'login' ? 'register' : 'login'); setFormError(null); }}
+            style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Sign In"}
+          </button>
+        </div>}
+        width="400px"
+      >
+        <form id="auth-form" onSubmit={handleAuthSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          {authMode === 'register' && (
+            <Field id="auth-name" label="Full Name" required>
+              <input
+                type="text"
+                placeholder="Sarah Jenkins"
+                value={authForm.name}
+                onChange={(e) => setAuthForm(prev => ({...prev, name: e.target.value}))}
+              />
+            </Field>
+          )}
+
+          <Field id="auth-email" label="Email Address" required>
+            <input
+              type="email"
+              placeholder="parent@example.com"
+              value={authForm.email}
+              onChange={(e) => setAuthForm(prev => ({...prev, email: e.target.value}))}
+            />
+          </Field>
+
+          <Field id="auth-pass" label="Password" required>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={authForm.password}
+              onChange={(e) => setAuthForm(prev => ({...prev, password: e.target.value}))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
+
+      {/* 7. CURRICULUM DETAIL VIEW */}
+      <GroveDialog
+        open={!!selectedCurriculumDetail}
+        onClose={() => setSelectedCurriculumDetail(null)}
+        title={selectedCurriculumDetail?.name || ''}
+        footer={<button className="btn btn-primary" onClick={() => setSelectedCurriculumDetail(null)}>Close Details</button>}
+        width="750px"
+      >
+        {selectedCurriculumDetail && (
+          <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               <span className="subject-badge">{selectedCurriculumDetail.subject}</span>
               <span style={{
@@ -2570,19 +2607,11 @@ export default function App() {
               </span>
             </div>
 
-            <h2 className="modal-title" style={{ borderBottom: 'none', marginBottom: '0.5rem', paddingBottom: 0 }}>
-              {selectedCurriculumDetail.name}
-            </h2>
-            
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
-              {renderStars(selectedCurriculumDetail.rating)}
-              <span className="rating-val" style={{ fontSize: '1rem' }}>
-                {selectedCurriculumDetail.rating.toFixed(1)} / 5.0 Rating
-              </span>
+              <Rating value={selectedCurriculumDetail.rating} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }}>
-              {/* Left Column: Description & Testimonial */}
               <div>
                 <h4 style={{ color: 'var(--color-primary)', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
                   Description
@@ -2601,7 +2630,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Right Column: Specifications Table */}
               <div style={{ background: 'var(--color-bg)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--color-border)', height: 'fit-content' }}>
                 <h4 style={{ color: 'var(--color-primary)', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>
                   Specifications
@@ -2610,19 +2638,19 @@ export default function App() {
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
                   <li style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--color-text-muted)' }}>Format:</span>
-                    <strong style={{ textTransform: 'capitalize' }}>{selectedCurriculumDetail.delivery}</strong>
+                    <strong style={{ textTransform: 'capitalize', marginLeft: 'auto' }}>{selectedCurriculumDetail.delivery}</strong>
                   </li>
                   <li style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--color-text-muted)' }}>Grouping:</span>
-                    <strong style={{ textTransform: 'capitalize' }}>{selectedCurriculumDetail.grouping}</strong>
+                    <strong style={{ textTransform: 'capitalize', marginLeft: 'auto' }}>{selectedCurriculumDetail.grouping}</strong>
                   </li>
                   <li style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--color-text-muted)' }}>Methodology:</span>
-                    <strong style={{ textTransform: 'capitalize' }}>{selectedCurriculumDetail.methodology === 'spiral' ? 'Spiral Review' : 'Mastery'}</strong>
+                    <strong style={{ textTransform: 'capitalize', marginLeft: 'auto' }}>{selectedCurriculumDetail.methodology === 'spiral' ? 'Spiral Review' : 'Mastery'}</strong>
                   </li>
                   <li style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
                     <span style={{ color: 'var(--color-text-muted)' }}>Answer Key:</span>
-                    <strong style={{ textTransform: 'capitalize' }}>{selectedCurriculumDetail.answerKey === 'provided' ? 'Included' : selectedCurriculumDetail.answerKey === 'extra' ? 'Extra Cost' : 'Self-Graded'}</strong>
+                    <strong style={{ textTransform: 'capitalize', marginLeft: 'auto' }}>{selectedCurriculumDetail.answerKey === 'provided' ? 'Included' : selectedCurriculumDetail.answerKey === 'extra' ? 'Extra Cost' : 'Self-Graded'}</strong>
                   </li>
                 </ul>
 
@@ -2668,21 +2696,71 @@ export default function App() {
               </div>
             </div>
 
-            <div className="form-actions" style={{ marginTop: '2rem' }}>
-              <button className="btn btn-primary" onClick={() => setSelectedCurriculumDetail(null)}>Close Details</button>
+            {/* Reviews Section */}
+            <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h4 style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem', margin: 0 }}>
+                  Parent Reviews ({selectedReviews.length})
+                </h4>
+                {currentUser && currentUser.role === 'Parent' && (
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleOpenReviewForExisting(selectedCurriculumDetail)}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                  >
+                    Write a Review
+                  </button>
+                )}
+              </div>
+
+              {/* Reviews List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {selectedReviews.length > 0 ? (
+                  selectedReviews.map(rev => (
+                    <div key={rev.id} style={{ borderBottom: '1px solid var(--color-border-light)', paddingBottom: '1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                        <Rating value={rev.rating} />
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)' }}>
+                          by {rev.userName}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginLeft: 'auto' }}>
+                          {new Date(rev.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      
+                      <p style={{ fontSize: '0.9rem', color: 'var(--ink)', margin: '0.25rem 0 0.75rem 0', lineHeight: 1.5 }}>
+                        {rev.description}
+                      </p>
+
+                      {rev.favoritePart && (
+                        <div className="card-favorite-block" style={{ display: 'inline-block', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                          <strong>Favorite Part:</strong> "{rev.favoritePart}"
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: 'var(--ink-muted)', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0' }}>
+                    No reviews yet. Be the first to review this curriculum!
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </GroveDialog>
 
-      {/* ======================================= */}
-      {/* MODAL: FIELD TRIP DETAIL VIEW          */}
-      {/* ======================================= */}
-      {selectedTripDetail && (
-        <div className="modal-overlay" onClick={() => setSelectedTripDetail(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px' }}>
-            <button className="modal-close" onClick={() => setSelectedTripDetail(null)}>×</button>
-            
+      {/* 8. FIELD TRIP DETAIL VIEW */}
+      <GroveDialog
+        open={!!selectedTripDetail}
+        onClose={() => setSelectedTripDetail(null)}
+        title={selectedTripDetail?.name || ''}
+        footer={<button className="btn btn-secondary" onClick={() => setSelectedTripDetail(null)}>Close</button>}
+        width="650px"
+      >
+        {selectedTripDetail && (
+          <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               <span className="subject-badge">{selectedTripDetail.subject}</span>
               <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--color-accent-oak)', marginLeft: 'auto' }}>
@@ -2690,15 +2768,8 @@ export default function App() {
               </span>
             </div>
 
-            <h2 className="modal-title" style={{ borderBottom: 'none', marginBottom: '0.5rem', paddingBottom: 0 }}>
-              {selectedTripDetail.name}
-            </h2>
-            
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              {renderStars(selectedTripDetail.rating)}
-              <span className="rating-val" style={{ fontSize: '1rem' }}>
-                {selectedTripDetail.rating.toFixed(1)} / 5.0 Rating
-              </span>
+              <Rating value={selectedTripDetail.rating} />
             </div>
 
             <div style={{ background: 'var(--color-bg)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--color-border)' }}>
@@ -2733,30 +2804,24 @@ export default function App() {
                 </a>
               </div>
             )}
-
-            <div className="form-actions" style={{ marginTop: '2rem' }}>
-              <button className="btn btn-secondary" onClick={() => setSelectedTripDetail(null)}>Close</button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </GroveDialog>
 
-      {/* ======================================= */}
-      {/* MODAL: BUSINESS AD DETAIL VIEW         */}
-      {/* ======================================= */}
-      {selectedAdDetail && (
-        <div className="modal-overlay" onClick={() => setSelectedAdDetail(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <button className="modal-close" onClick={() => setSelectedAdDetail(null)}>×</button>
-            
+      {/* 9. BUSINESS AD DETAIL VIEW */}
+      <GroveDialog
+        open={!!selectedAdDetail}
+        onClose={() => setSelectedAdDetail(null)}
+        title={selectedAdDetail?.businessName || ''}
+        footer={<button className="btn btn-secondary" onClick={() => setSelectedAdDetail(null)}>Close</button>}
+        width="600px"
+      >
+        {selectedAdDetail && (
+          <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               <span className="ad-category" style={{ fontSize: '0.85rem' }}>{selectedAdDetail.category}</span>
             </div>
 
-            <h2 className="modal-title" style={{ borderBottom: 'none', marginBottom: '0.5rem', paddingBottom: 0 }}>
-              {selectedAdDetail.businessName}
-            </h2>
-            
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
               <span>Owner: <strong>{selectedAdDetail.owner}</strong></span>
             </div>
@@ -2783,13 +2848,9 @@ export default function App() {
                 </a>
               </div>
             )}
-
-            <div className="form-actions" style={{ marginTop: '2rem' }}>
-              <button className="btn btn-secondary" onClick={() => setSelectedAdDetail(null)}>Close</button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </GroveDialog>
     </div>
   );
 }
