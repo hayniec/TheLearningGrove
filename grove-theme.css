@@ -1,0 +1,668 @@
+/* ==========================================================================
+   THE LEARNING GROVE — Accessible Theme Layer
+   Section 508 / WCAG 2.2 Level AA
+   --------------------------------------------------------------------------
+   HOW TO USE
+   1. Save as src/grove-theme.css
+   2. In src/main.jsx, import it AFTER index.css:
+        import './index.css'
+        import './grove-theme.css'
+   3. Add to index.html <html> tag:  <html lang="en" data-theme="system">
+   4. Paste the theme-toggle script (bottom of this file) into main.jsx or a
+      ThemeToggle component.
+
+   Every colour pair below was contrast-tested. Ratios noted inline.
+   Keeps your forest identity — it darkens the oak and sage only where they
+   were being used as *text*, which is where they were failing.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. LIGHT THEME TOKENS (default)
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --surface-page:      #FBFAF7;  /* warm ivory paper */
+  --surface-card:      #FFFFFF;
+  --surface-raised:    #F3F1EC;  /* filter rails, table headers */
+  --surface-sunken:    #F0EEE8;  /* input wells */
+
+  /* Text — "ink" */
+  --ink:               #1B201C;  /* 15.8:1 on page */
+  --ink-muted:         #556056;  /*  6.3:1 on page — safe for 14px */
+  --ink-inverse:       #FFFFFF;
+
+  /* Brand */
+  --brand:             #1E3F20;  /* forest — 11.3:1 on page */
+  --brand-hover:       #2A5A2D;
+  --brand-fill:        #1E3F20;  /* button background */
+  --brand-on-fill:     #FFFFFF;  /* 11.8:1 */
+  --brand-wash:        #E4EDE4;  /* chip / active-row background */
+  --brand-wash-ink:    #1E3F20;  /*  9.8:1 on wash */
+
+  /* Accent (oak) — SPLIT into a text-safe tone and a decorative tone */
+  --oak-text:          #8A5320;  /*  6.3:1 — use for any oak-coloured TEXT */
+  --oak-decor:         #B77C43;  /* use ONLY for 4px+ rules, fills, icons ≥24px */
+  --oak-wash:          #F6EADC;
+  --oak-wash-ink:      #6E4318;  /*  7.2:1 on wash */
+
+  /* Status */
+  --star:              #A85F06;  /*  4.9:1 — meets 3:1 graphic minimum */
+  --star-empty:        #B9B4A9;  /*  2.5:1 vs white is fine: paired with filled */
+  --danger:            #A0201A;  /*  7.7:1 */
+  --danger-wash:       #FBE9E7;
+  --success:           #1F6127;  /*  7.5:1 */
+  --success-wash:      #E4F0E5;
+
+  /* Lines */
+  --line-subtle:       #DEE3DD;  /* decorative separators only */
+  --line-strong:       #6D7A6D;  /*  4.5:1 — REQUIRED for input/control borders */
+
+  /* Focus — dual ring so it stays visible on any fill */
+  --focus-ring:        #1E3F20;
+  --focus-halo:        #FBFAF7;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(27, 32, 28, .06), 0 2px 8px rgba(27, 32, 28, .05);
+  --shadow-md: 0 2px 4px rgba(27, 32, 28, .07), 0 8px 24px rgba(27, 32, 28, .08);
+  --shadow-lg: 0 4px 8px rgba(27, 32, 28, .08), 0 16px 40px rgba(27, 32, 28, .12);
+}
+
+/* --------------------------------------------------------------------------
+   2. DARK THEME TOKENS
+   Not an inversion. Forest green is unreadable on dark, so the brand role
+   shifts to a light sage and oak warms up. Surfaces stay green-black, not
+   pure black — pure black on OLED causes smearing during scroll.
+   -------------------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-page:      #101410;
+  --surface-card:      #1A211A;
+  --surface-raised:    #232B22;
+  --surface-sunken:    #0C0F0C;
+
+  --ink:               #E7EDE6;  /* 13.8:1 on card */
+  --ink-muted:         #A7B3A6;  /*  7.6:1 on card */
+  --ink-inverse:       #0E1410;
+
+  --brand:             #93C795;  /*  8.5:1 on card */
+  --brand-hover:       #AEDBB0;
+  --brand-fill:        #93C795;
+  --brand-on-fill:     #0E1410;  /*  9.6:1 */
+  --brand-wash:        #263326;
+  --brand-wash-ink:    #C6E3C6;  /*  9.6:1 on wash */
+
+  --oak-text:          #E0A96A;  /*  7.9:1 */
+  --oak-decor:         #C98D4E;
+  --oak-wash:          #33271A;
+  --oak-wash-ink:      #EDC796;
+
+  --star:              #F0B75E;  /*  9.1:1 */
+  --star-empty:        #4E5A4D;
+  --danger:            #F2A9A2;  /*  8.6:1 */
+  --danger-wash:       #37201E;
+  --success:           #82CE8A;  /*  8.7:1 */
+  --success-wash:      #1B2E1D;
+
+  --line-subtle:       #2E372D;
+  --line-strong:       #768476;  /*  4.2:1 */
+
+  --focus-ring:        #F0B75E;  /* amber reads on both green fills and page */
+  --focus-halo:        #101410;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, .55);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, .6);
+}
+
+/* Honour the OS setting when the user hasn't picked explicitly */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --surface-page:   #101410;
+    --surface-card:   #1A211A;
+    --surface-raised: #232B22;
+    --surface-sunken: #0C0F0C;
+    --ink:            #E7EDE6;
+    --ink-muted:      #A7B3A6;
+    --ink-inverse:    #0E1410;
+    --brand:          #93C795;
+    --brand-hover:    #AEDBB0;
+    --brand-fill:     #93C795;
+    --brand-on-fill:  #0E1410;
+    --brand-wash:     #263326;
+    --brand-wash-ink: #C6E3C6;
+    --oak-text:       #E0A96A;
+    --oak-decor:      #C98D4E;
+    --oak-wash:       #33271A;
+    --oak-wash-ink:   #EDC796;
+    --star:           #F0B75E;
+    --star-empty:     #4E5A4D;
+    --danger:         #F2A9A2;
+    --danger-wash:    #37201E;
+    --success:        #82CE8A;
+    --success-wash:   #1B2E1D;
+    --line-subtle:    #2E372D;
+    --line-strong:    #768476;
+    --focus-ring:     #F0B75E;
+    --focus-halo:     #101410;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, .55);
+    --shadow-lg: 0 12px 36px rgba(0, 0, 0, .6);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. TYPE SCALE
+   Nothing below 0.875rem (14px). Your current 0.7rem labels are 11px, which
+   is a readability problem for the 40+ parents who are your core audience.
+   -------------------------------------------------------------------------- */
+:root {
+  --text-xs:   0.875rem;  /* 14px — smallest permitted */
+  --text-sm:   0.9375rem; /* 15px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  1.75rem;
+  --text-3xl:  clamp(1.875rem, 1.5rem + 1.5vw, 2.5rem);
+
+  --leading-tight: 1.25;
+  --leading-body:  1.6;
+
+  --tap-min: 44px; /* WCAG 2.2 — 2.5.8 Target Size (Minimum) */
+}
+
+/* --------------------------------------------------------------------------
+   4. GLOBAL OVERRIDES — remaps your existing variable names onto the
+   accessible palette so most of index.css inherits the fix for free.
+   -------------------------------------------------------------------------- */
+:root {
+  --color-primary:            var(--brand);
+  --color-primary-rgb:        30, 63, 32;
+  --color-accent-sage:        var(--line-strong);
+  --color-accent-sage-light:  var(--brand-wash);
+  --color-accent-oak:         var(--oak-text);
+  --color-accent-oak-light:   var(--oak-wash);
+  --color-bg:                 var(--surface-page);
+  --color-card:               var(--surface-card);
+  --color-text-dark:          var(--ink);
+  --color-text-muted:         var(--ink-muted);
+  --color-text-light:         var(--ink-inverse);
+  --color-border:             var(--line-subtle);
+  --color-star:               var(--star);
+  --color-danger:             var(--danger);
+  --color-danger-bg:          var(--danger-wash);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background-color: var(--surface-page);
+  color: var(--ink);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  min-height: 100svh;          /* fixes the mobile 100vh address-bar jump */
+  transition: background-color .2s ease, color .2s ease;
+}
+
+/* --------------------------------------------------------------------------
+   5. FOCUS VISIBILITY  (WCAG 2.4.7, 2.4.11)
+   Your index.css currently does `.search-input:focus { outline: none }`.
+   That is a straight 508 failure. This restores it everywhere with a dual
+   ring that survives coloured button fills.
+   -------------------------------------------------------------------------- */
+*:focus { outline: none; }
+
+*:focus-visible,
+.search-input:focus-visible,
+.form-control:focus-visible,
+.nav-link:focus-visible,
+.btn:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--focus-halo);
+  border-radius: 6px;
+}
+
+/* Mouse users still get the ring if JS focus-visible is unsupported —
+   never remove it wholesale. */
+.js-focus-visible :focus:not(.focus-visible) { outline: none; }
+
+/* Skip link — first focusable element in the DOM */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  padding: .75rem 1.25rem;
+  background: var(--surface-card);
+  color: var(--brand);
+  font-weight: 700;
+  border: 2px solid var(--focus-ring);
+  border-radius: 0 0 8px 0;
+}
+.skip-link:focus { left: 0; }
+
+/* Screen-reader-only text (use for star ratings, icon buttons, live regions) */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.visually-hidden:focus-within { /* allow skip-links inside */ }
+
+/* --------------------------------------------------------------------------
+   6. MOTION  (WCAG 2.3.3)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .curriculum-card:hover,
+  .resource-card:hover,
+  .post-card:hover,
+  .btn:hover { transform: none !important; }
+}
+
+/* --------------------------------------------------------------------------
+   7. FORMS
+   -------------------------------------------------------------------------- */
+.form-label,
+.field__label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: .3rem;
+}
+
+/* Required marker: never rely on colour or the asterisk alone */
+.field__label[data-required]::after {
+  content: " (required)";
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+}
+
+.field__hint {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  margin-bottom: .4rem;
+}
+
+.form-control,
+.search-input,
+.field__input {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: .625rem .75rem;
+  font-size: var(--text-base);   /* 16px stops iOS zoom-on-focus */
+  color: var(--ink);
+  background: var(--surface-card);
+  border: 1px solid var(--line-strong);  /* 4.5:1 — was 1.14:1 */
+  border-radius: 8px;
+  box-shadow: none;
+}
+.form-control::placeholder,
+.search-input::placeholder { color: var(--ink-muted); opacity: 1; }
+
+.form-control[aria-invalid="true"],
+.field__input[aria-invalid="true"] {
+  border-color: var(--danger);
+  border-width: 2px;
+  background: var(--danger-wash);
+}
+
+/* Error text — pair with aria-describedby on the input, plus the icon so the
+   message is not colour-only (WCAG 1.4.1) */
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: .35rem;
+  margin-top: .35rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--danger);
+}
+.field__error::before { content: "!"; font-weight: 800; }
+
+/* Grouped checkboxes/radios belong in a fieldset */
+.field-group {
+  border: 1px solid var(--line-subtle);
+  border-radius: 10px;
+  padding: 1rem 1.125rem 1.125rem;
+  margin: 0 0 1.25rem;
+}
+.field-group > legend {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+  padding: 0 .4rem;
+}
+
+.checkbox-label,
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  min-height: var(--tap-min);   /* was ~20px — too small to tap reliably */
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"],
+.checkbox-label input[type="radio"],
+.option-item input[type="checkbox"],
+.option-item input[type="radio"] {
+  width: 20px; height: 20px;
+  accent-color: var(--brand-fill);
+  flex: none;
+}
+
+/* --------------------------------------------------------------------------
+   8. BUTTONS
+   -------------------------------------------------------------------------- */
+.btn {
+  min-height: var(--tap-min);
+  padding: .625rem 1.25rem;
+  font-size: var(--text-base);
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  background: var(--brand-fill);
+  color: var(--brand-on-fill);
+}
+.btn-primary:hover { background: var(--brand-hover); }
+
+.btn-accent {
+  background: var(--oak-text);
+  color: #FFFFFF;
+}
+:root[data-theme="dark"] .btn-accent { color: var(--ink-inverse); }
+
+.btn-secondary {
+  background: var(--surface-card);
+  color: var(--brand);
+  border-color: var(--line-strong);
+}
+.btn-secondary:hover { background: var(--brand-wash); }
+
+.btn[aria-disabled="true"],
+.btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+/* Icon-only buttons must still hit 44px and carry an aria-label */
+.btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn-icon:hover { background: var(--surface-raised); }
+.btn-icon svg { width: 22px; height: 22px; fill: currentColor; }
+
+/* Decorative SVGs inside labelled controls should carry aria-hidden="true" */
+
+/* --------------------------------------------------------------------------
+   9. NAVIGATION  — fixes the low-contrast rgba(255,255,255,.6/.7) nav text
+   -------------------------------------------------------------------------- */
+.sidebar {
+  background: var(--brand-fill);
+  color: var(--brand-on-fill);
+}
+:root[data-theme="dark"] .sidebar {
+  background: var(--surface-card);
+  border-right: 1px solid var(--line-subtle);
+}
+
+.nav-link {
+  min-height: var(--tap-min);
+  color: #C3D3C3;                 /* 7.5:1 on forest — was 2.9:1 */
+  font-size: var(--text-base);
+}
+:root[data-theme="dark"] .nav-link { color: var(--ink-muted); }
+
+.nav-link:hover { color: #FFFFFF; background: rgba(255,255,255,.12); }
+:root[data-theme="dark"] .nav-link:hover { color: var(--ink); background: var(--surface-raised); }
+
+/* Active state carries a shape change, not just colour (WCAG 1.4.1) */
+.nav-link.active,
+.nav-link[aria-current="page"] {
+  color: #FFFFFF;
+  background: rgba(255,255,255,.16);
+  border-left: 4px solid var(--oak-decor);
+  font-weight: 700;
+}
+:root[data-theme="dark"] .nav-link.active,
+:root[data-theme="dark"] .nav-link[aria-current="page"] {
+  color: var(--ink);
+  background: var(--brand-wash);
+  border-left-color: var(--brand);
+}
+
+.sidebar-footer { color: #B4C4B4; font-size: var(--text-xs); }
+
+@media (max-width: 768px) {
+  .nav-link { font-size: var(--text-xs); min-height: 52px; }
+  .sidebar { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* --------------------------------------------------------------------------
+   10. CARDS, CHIPS, RATINGS
+   -------------------------------------------------------------------------- */
+.curriculum-card,
+.resource-card,
+.post-card,
+.card {
+  background: var(--surface-card);
+  border: 1px solid var(--line-subtle);
+  color: var(--ink);
+}
+.curriculum-card:hover,
+.resource-card:hover,
+.post-card:hover { border-color: var(--line-strong); }
+
+.subject-badge,
+.res-badge,
+.badge-general,
+.chip {
+  background: var(--brand-wash);
+  color: var(--brand-wash-ink);
+  font-size: var(--text-xs);
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: none;   /* ALL-CAPS slows reading, especially for dyslexia */
+  letter-spacing: .01em;
+}
+.chip--oak,
+.res-cost,
+.badge-advice {
+  background: var(--oak-wash);
+  color: var(--oak-wash-ink);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: none;
+}
+
+/* Star rating.
+   Markup: <span class="rating"><span aria-hidden="true">★★★★☆</span>
+             <span class="visually-hidden">4.2 out of 5 stars, 18 reviews</span></span>
+   The stars are decorative; the number is the accessible truth. */
+.rating { display: inline-flex; align-items: center; gap: .35rem; }
+.rating svg, .rating .star-on  { fill: var(--star); color: var(--star); }
+.rating .star-off { fill: var(--star-empty); color: var(--star-empty); }
+.rating__value { font-weight: 700; color: var(--ink); font-size: var(--text-sm); }
+.rating__count { color: var(--ink-muted); font-size: var(--text-xs); }
+
+/* --------------------------------------------------------------------------
+   11. MODAL / DIALOG
+   Use the native <dialog> element with showModal(). It gives you focus
+   trapping, Escape-to-close, inert background and aria-modal for free —
+   all four of which your current div-based modals are missing.
+   -------------------------------------------------------------------------- */
+dialog.grove-dialog {
+  width: min(92vw, 640px);
+  max-height: 85svh;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--surface-card);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+dialog.grove-dialog::backdrop { background: rgba(10, 14, 10, .6); }
+
+.grove-dialog__head {
+  position: sticky; top: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--line-subtle);
+}
+.grove-dialog__title { font-size: var(--text-xl); color: var(--brand); margin: 0; }
+.grove-dialog__body { padding: 1.5rem; overflow-y: auto; }
+.grove-dialog__foot {
+  position: sticky; bottom: 0;
+  display: flex; gap: .75rem; justify-content: flex-end;
+  padding: 1rem 1.5rem;
+  background: var(--surface-card);
+  border-top: 1px solid var(--line-subtle);
+}
+@media (max-width: 560px) {
+  .grove-dialog__foot { flex-direction: column-reverse; }
+  .grove-dialog__foot .btn { width: 100%; }
+}
+
+/* If you keep the existing div-based modals for now, at minimum: */
+.modal-overlay { background: rgba(10, 14, 10, .6); }
+.modal-content { background: var(--surface-card); color: var(--ink); }
+.modal-close {
+  width: var(--tap-min); height: var(--tap-min);
+  font-size: 1.5rem; line-height: 1;
+  color: var(--ink); background: transparent; border: none; cursor: pointer;
+  border-radius: 10px;
+}
+.modal-close:hover { background: var(--surface-raised); }
+body.modal-open { overflow: hidden; }   /* stop background scroll */
+
+/* --------------------------------------------------------------------------
+   12. STATUS MESSAGES — replace every alert() with one of these
+   Put role="status" (polite) or role="alert" (assertive) on the element.
+   -------------------------------------------------------------------------- */
+.notice {
+  display: flex; gap: .6rem; align-items: flex-start;
+  padding: .875rem 1rem;
+  border-radius: 10px;
+  border-left: 4px solid;
+  font-size: var(--text-sm);
+}
+.notice--error   { background: var(--danger-wash);  border-color: var(--danger);  color: var(--danger); }
+.notice--success { background: var(--success-wash); border-color: var(--success); color: var(--success); }
+.notice--info    { background: var(--brand-wash);   border-color: var(--brand);   color: var(--brand-wash-ink); }
+
+/* --------------------------------------------------------------------------
+   13. TABLES (curriculum comparison view)
+   -------------------------------------------------------------------------- */
+.grove-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.grove-table caption { text-align: left; font-weight: 700; padding-bottom: .5rem; color: var(--ink); }
+.grove-table th, .grove-table td {
+  padding: .75rem .875rem;
+  border-bottom: 1px solid var(--line-subtle);
+  text-align: left;
+}
+.grove-table thead th { background: var(--surface-raised); color: var(--ink); font-weight: 700; }
+.grove-table tbody tr:hover { background: var(--surface-raised); }
+
+/* --------------------------------------------------------------------------
+   14. WINDOWS HIGH CONTRAST / FORCED COLORS
+   A meaningful share of 508 users run this. Custom colours are discarded, so
+   anything drawn with background alone becomes invisible.
+   -------------------------------------------------------------------------- */
+@media (forced-colors: active) {
+  .btn,
+  .form-control,
+  .search-input,
+  .chip,
+  .subject-badge,
+  .curriculum-card,
+  .grove-dialog { border: 1px solid ButtonBorder; }
+
+  .nav-link.active,
+  .nav-link[aria-current="page"] { border-left: 4px solid Highlight; }
+
+  *:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+
+  .rating svg { forced-color-adjust: auto; }
+}
+
+/* --------------------------------------------------------------------------
+   15. LAYOUT SAFETY
+   -------------------------------------------------------------------------- */
+/* WCAG 1.4.10 Reflow: no horizontal scroll at 320px / 400% zoom */
+.app-container, .main-content { max-width: 100%; overflow-x: hidden; }
+.main-content { padding: clamp(1rem, 2vw + .5rem, 2.5rem) clamp(1rem, 3vw, 3.5rem); }
+
+/* WCAG 1.4.12 Text Spacing: layout must survive user stylesheets */
+.curriculum-card, .resource-card, .post-card { min-height: auto; height: auto; }
+
+img, svg, video { max-width: 100%; height: auto; }
+
+/* ==========================================================================
+   THEME TOGGLE — paste into src/main.jsx above ReactDOM.createRoot()
+   --------------------------------------------------------------------------
+   const saved = localStorage.getItem('grove-theme') || 'system';
+   document.documentElement.setAttribute('data-theme', saved);
+
+   And use this component for the control:
+
+   function ThemeToggle() {
+     const [theme, setTheme] = React.useState(
+       () => localStorage.getItem('grove-theme') || 'system'
+     );
+     React.useEffect(() => {
+       document.documentElement.setAttribute('data-theme', theme);
+       localStorage.setItem('grove-theme', theme);
+     }, [theme]);
+
+     return (
+       <fieldset className="field-group">
+         <legend>Appearance</legend>
+         {['light', 'dark', 'system'].map(opt => (
+           <label className="option-item" key={opt}>
+             <input
+               type="radio"
+               name="theme"
+               value={opt}
+               checked={theme === opt}
+               onChange={() => setTheme(opt)}
+             />
+             <span>{opt === 'system' ? 'Match my device' : opt[0].toUpperCase() + opt.slice(1)}</span>
+           </label>
+         ))}
+       </fieldset>
+     );
+   }
+
+   A radio group beats a moon/sun icon here: it is self-describing, it exposes
+   the third "system" state, and non-technical users do not have to guess what
+   the icon means.
+   ========================================================================== */

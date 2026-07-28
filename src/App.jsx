@@ -1,5 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import GroveDialog, { Field, Notice, Rating } from './GroveDialog.jsx';
+import {
+  getCurricula,
+  getCurriculumReviews,
+  addCurriculum,
+  addCurriculumReview,
+  getFieldTrips,
+  addFieldTrip,
+  getBusinessAds,
+  addBusinessAd,
+  getResources,
+  addResource,
+  getPosts,
+  addPost,
+  getUserByEmail,
+  createUser,
+  getSubUsers,
+  createSubUser,
+  getPendingResources,
+  approveResource,
+  rejectResource,
+  hashPassword
+} from './supabaseClient';
 
 // --- INLINE SVG ICONS (PREMIUM, ZERO-LATENCY) ---
 const DashboardIcon = () => (
@@ -205,11 +227,11 @@ export default function App() {
   const fetchData = async () => {
     try {
       const [currRes, tripRes, adRes, resRes, postRes] = await Promise.all([
-        fetch('/api/curricula').then(r => r.json()),
-        fetch('/api/fieldtrips').then(r => r.json()),
-        fetch('/api/businessads').then(r => r.json()),
-        fetch('/api/resources').then(r => r.json()),
-        fetch('/api/posts').then(r => r.json())
+        getCurricula(),
+        getFieldTrips(),
+        getBusinessAds(),
+        getResources(),
+        getPosts()
       ]);
 
       setCurricula(currRes);
@@ -313,16 +335,14 @@ export default function App() {
     if (currentUser) {
       localStorage.setItem('grove_user', JSON.stringify(currentUser));
       if (currentUser.role === 'Parent') {
-        fetch(`/api/users/${currentUser.id}/subusers`)
-          .then(r => r.json())
+        getSubUsers(currentUser.id)
           .then(data => setSubUsers(data))
           .catch(err => console.error("Error fetching subusers:", err));
       } else {
         setSubUsers([]);
       }
       if (currentUser.role === 'Moderator') {
-        fetch('/api/resources/pending')
-          .then(r => r.json())
+        getPendingResources()
           .then(data => setPendingResources(data))
           .catch(err => console.error("Error fetching pending resources:", err));
       } else {
@@ -405,8 +425,7 @@ export default function App() {
 
   useEffect(() => {
     if (selectedCurriculumDetail) {
-      fetch(`/api/curricula/${selectedCurriculumDetail.id}/reviews`)
-        .then(res => res.json())
+      getCurriculumReviews(selectedCurriculumDetail.id)
         .then(data => setSelectedReviews(data))
         .catch(err => console.error("Error fetching reviews:", err));
     } else {
@@ -435,32 +454,23 @@ export default function App() {
         userName: currentUser ? currentUser.name : 'Sarah Jenkins'
       };
       
-      const url = reviewingCurriculumId 
-        ? `/api/curricula/${reviewingCurriculumId}/reviews`
-        : '/api/curricula';
-        
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      if (res.ok) {
-        setShowCurriculumModal(false);
-        setFormError(null);
-        setNewCurriculum({
-          name: '', subject: 'Math', delivery: 'online', grouping: 'grade',
-          cost: '$$', rating: 5, favoritePart: '', answerKey: 'provided',
-          methodology: 'spiral', onlineResources: false, selfPaced: false,
-          classParticipation: false, worldview: 'secular', videos: false, description: ''
-        });
-        setGradeLevelsSelected([]);
-        setReviewingCurriculumId(null);
-        fetchData();
+      if (reviewingCurriculumId) {
+        await addCurriculumReview(reviewingCurriculumId, payload);
       } else {
-        const err = await res.json();
-        setFormError(err.error || "Failed to save curriculum review.");
+        await addCurriculum(payload);
       }
+      
+      setShowCurriculumModal(false);
+      setFormError(null);
+      setNewCurriculum({
+        name: '', subject: 'Math', delivery: 'online', grouping: 'grade',
+        cost: '$$', rating: 5, favoritePart: '', answerKey: 'provided',
+        methodology: 'spiral', onlineResources: false, selfPaced: false,
+        classParticipation: false, worldview: 'secular', videos: false, description: ''
+      });
+      setGradeLevelsSelected([]);
+      setReviewingCurriculumId(null);
+      fetchData();
     } catch (err) {
       console.error(err);
       setFormError("An unexpected error occurred while saving the review.");
@@ -536,24 +546,15 @@ export default function App() {
 
     try {
       const payload = { ...newTrip, lat, lng, userId: currentUser ? currentUser.id : 'parent-1' };
-      const res = await fetch('/api/fieldtrips', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      await addFieldTrip(payload);
+      setShowTripModal(false);
+      setFormError(null);
+      setNewTrip({
+        name: '', subject: 'Science', cost: '$$', rating: 5, description: '',
+        location: '', gradeRecommendation: 'All Grades',
+        city: '', state: '', zip: '', websiteUrl: ''
       });
-      if (res.ok) {
-        setShowTripModal(false);
-        setFormError(null);
-        setNewTrip({
-          name: '', subject: 'Science', cost: '$$', rating: 5, description: '',
-          location: '', gradeRecommendation: 'All Grades',
-          city: '', state: '', zip: '', websiteUrl: ''
-        });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setFormError(err.error || "Failed to post field trip.");
-      }
+      fetchData();
     } catch (err) {
       console.error(err);
       setFormError("An unexpected error occurred while posting field trip.");
@@ -568,23 +569,14 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/businessads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newAd, userId: currentUser ? currentUser.id : 'parent-1' })
+      await addBusinessAd({ ...newAd, userId: currentUser ? currentUser.id : 'parent-1' });
+      setShowAdModal(false);
+      setFormError(null);
+      setNewAd({
+        owner: '', businessName: '', description: '', category: 'Cottage Industries',
+        businessType: '', contact: '', link: ''
       });
-      if (res.ok) {
-        setShowAdModal(false);
-        setFormError(null);
-        setNewAd({
-          owner: '', businessName: '', description: '', category: 'Cottage Industries',
-          businessType: '', contact: '', link: ''
-        });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setFormError(err.error || "Failed to publish business ad.");
-      }
+      fetchData();
     } catch (err) {
       console.error(err);
       setFormError("An unexpected error occurred while publishing the ad.");
@@ -599,22 +591,13 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newPost, userId: currentUser ? currentUser.id : 'parent-1' })
+      await addPost({ ...newPost, userId: currentUser ? currentUser.id : 'parent-1' });
+      setShowPostModal(false);
+      setFormError(null);
+      setNewPost({
+        author: '', title: '', content: '', category: 'General'
       });
-      if (res.ok) {
-        setShowPostModal(false);
-        setFormError(null);
-        setNewPost({
-          author: '', title: '', content: '', category: 'General'
-        });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setFormError(err.error || "Failed to publish post.");
-      }
+      fetchData();
     } catch (err) {
       console.error(err);
       setFormError("An unexpected error occurred while publishing the post.");
@@ -625,44 +608,44 @@ export default function App() {
     e.preventDefault();
     if (authMode === 'login') {
       try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: authForm.email, password: authForm.password })
-        });
-        if (res.ok) {
-          const user = await res.json();
-          setCurrentUser(user);
-          setShowAuthModal(false);
-          setFormError(null);
-          setAuthForm({ email: '', password: '', name: '' });
-          fetchData();
-        } else {
-          const err = await res.json();
-          setFormError(err.error || "Login failed");
+        const user = await getUserByEmail(authForm.email);
+        if (!user) {
+          setFormError("Incorrect email or password.");
+          return;
         }
+        const inputHashed = await hashPassword(authForm.password);
+        if (user.password !== inputHashed) {
+          setFormError("Incorrect email or password.");
+          return;
+        }
+        setCurrentUser(user);
+        setShowAuthModal(false);
+        setFormError(null);
+        setAuthForm({ email: '', password: '', name: '' });
+        fetchData();
       } catch (err) {
         console.error(err);
         setFormError("Login failed");
       }
     } else {
       try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(authForm)
-        });
-        if (res.ok) {
-          const user = await res.json();
-          setCurrentUser(user);
-          setShowAuthModal(false);
-          setFormError(null);
-          setAuthForm({ email: '', password: '', name: '' });
-          fetchData();
-        } else {
-          const err = await res.json();
-          setFormError(err.error || "Registration failed");
+        const existing = await getUserByEmail(authForm.email);
+        if (existing) {
+          setFormError("Email is already registered.");
+          return;
         }
+        const user = await createUser({
+          email: authForm.email,
+          password: authForm.password,
+          name: authForm.name,
+          role: 'Parent',
+          parentId: null
+        });
+        setCurrentUser(user);
+        setShowAuthModal(false);
+        setFormError(null);
+        setAuthForm({ email: '', password: '', name: '' });
+        fetchData();
       } catch (err) {
         console.error(err);
         setFormError("Registration failed");
@@ -677,20 +660,15 @@ export default function App() {
     setSubUserSuccess(null);
 
     try {
-      const res = await fetch(`/api/users/${currentUser.id}/subusers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSubUserForm)
-      });
-      if (res.ok) {
-        const newSub = await res.json();
-        setSubUsers(prev => [...prev, newSub]);
-        setNewSubUserForm({ email: '', password: '', name: '', role: 'Student' });
-        setSubUserSuccess("Child profile added successfully!");
-      } else {
-        const err = await res.json();
-        setSubUserError(err.error || "Failed to create child profile");
+      const existing = await getUserByEmail(newSubUserForm.email);
+      if (existing) {
+        setSubUserError("Email is already registered.");
+        return;
       }
+      const newSub = await createSubUser(currentUser.id, newSubUserForm);
+      setSubUsers(prev => [...prev, newSub]);
+      setNewSubUserForm({ email: '', password: '', name: '', role: 'Student' });
+      setSubUserSuccess("Child profile added successfully!");
     } catch (err) {
       console.error(err);
       setSubUserError("Failed to create child profile");
@@ -699,29 +677,23 @@ export default function App() {
 
   const handleApproveResource = async (id) => {
     try {
-      const res = await fetch(`/api/resources/${id}/approve`, { method: 'POST' });
-      if (res.ok) {
-        setPendingResources(prev => prev.filter(r => r.id !== id));
-        fetchData();
-      } else {
-        setFormError("Failed to approve resource");
-      }
+      await approveResource(id);
+      setPendingResources(prev => prev.filter(r => r.id !== id));
+      fetchData();
     } catch (err) {
       console.error(err);
+      setFormError("Failed to approve resource");
     }
   };
 
   const handleRejectResource = async (id) => {
     if (!confirm("Are you sure you want to reject and delete this resource?")) return;
     try {
-      const res = await fetch(`/api/resources/${id}/reject`, { method: 'POST' });
-      if (res.ok) {
-        setPendingResources(prev => prev.filter(r => r.id !== id));
-      } else {
-        setFormError("Failed to reject resource");
-      }
+      await rejectResource(id);
+      setPendingResources(prev => prev.filter(r => r.id !== id));
     } catch (err) {
       console.error(err);
+      setFormError("Failed to reject resource");
     }
   };
 
@@ -743,21 +715,12 @@ export default function App() {
         approved: currentUser.role === 'Moderator'
       };
 
-      const res = await fetch('/api/resources', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await addResource(payload);
 
-      if (res.ok) {
-        setShowResourceModal(false);
-        setFormError(null);
-        setNewResource({ name: '', subject: 'Math', cost: 'free', link: '', description: '', type: 'website' });
-        fetchData();
-      } else {
-        const err = await res.json();
-        setFormError(err.error || "Failed to submit resource");
-      }
+      setShowResourceModal(false);
+      setFormError(null);
+      setNewResource({ name: '', subject: 'Math', cost: 'free', link: '', description: '', type: 'website' });
+      fetchData();
     } catch (err) {
       console.error(err);
       setFormError("Failed to submit resource");
