@@ -156,6 +156,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState('login');
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
   const [newSubUserForm, setNewSubUserForm] = useState({ email: '', password: '', name: '', role: 'Student' });
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [newResource, setNewResource] = useState({ name: '', subject: 'Math', cost: 'free', link: '', description: '', type: 'website' });
   const [showModQueue, setShowModQueue] = useState(false);
@@ -810,24 +811,48 @@ export default function App() {
           </div>
 
           {/* USER PROFILE SECTION */}
-          <div style={{ padding: '0.75rem 1rem', background: 'var(--color-primary-light)', margin: '0 1rem 1rem 1rem', borderRadius: '8px', border: '1px solid var(--color-accent-sage-light)' }}>
+          <div style={{ padding: '0.75rem 1rem', background: 'var(--brand-wash, #E4EDE4)', margin: '0 1rem 1rem 1rem', borderRadius: '8px', border: '1.5px solid var(--line-strong, #6D7A6D)' }}>
             {currentUser ? (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem' }}>
                     {currentUser.name.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.8rem', color: 'var(--color-text-dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.name}</div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--color-accent-oak)', fontWeight: '700', textTransform: 'uppercase' }}>{currentUser.role}</div>
+                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.name}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--oak-text, #8A5320)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{currentUser.role}</div>
                   </div>
                 </div>
 
+                {currentUser.role === 'Parent' && (
+                  <button 
+                    onClick={() => setShowFamilyModal(true)}
+                    style={{ 
+                      width: '100%', 
+                      fontSize: '0.75rem', 
+                      padding: '5px 0', 
+                      border: 'none', 
+                      background: 'var(--brand, #1E3F20)', 
+                      color: 'var(--brand-on-fill, #FFFFFF)', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer', 
+                      fontWeight: '700', 
+                      marginBottom: '0.4rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span>➕ Manage / Add Child</span>
+                  </button>
+                )}
+
                 {currentUser.role === 'Parent' && subUsers.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '0.5rem' }}>
-                    <label style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>Switch Profile:</label>
+                    <label style={{ fontSize: '0.65rem', color: 'var(--ink-muted, #556056)', fontWeight: '700' }}>Switch Profile:</label>
                     <select 
-                      style={{ fontSize: '0.75rem', padding: '0.15rem', borderRadius: '4px', border: '1px solid var(--color-accent-sage-light)', width: '100%' }}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--ink, #1B201C)', fontWeight: '600', width: '100%' }}
                       value={currentUser.id}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -855,7 +880,7 @@ export default function App() {
                         setCurrentUser(parent);
                       }
                     }}
-                    style={{ width: '100%', fontSize: '0.7rem', padding: '3px 0', border: '1px solid var(--color-primary)', background: 'white', color: 'var(--color-primary)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', marginBottom: '0.25rem' }}
+                    style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--brand, #1E3F20)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--brand, #1E3F20)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700', marginBottom: '0.4rem' }}
                   >
                     Switch to Parent
                   </button>
@@ -866,7 +891,7 @@ export default function App() {
                     localStorage.removeItem('grove_parent_user');
                     setCurrentUser(null);
                   }}
-                  style={{ width: '100%', fontSize: '0.7rem', padding: '3px 0', border: '1px solid var(--color-accent-oak)', background: 'white', color: 'var(--color-accent-oak)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--danger, #A0201A)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--danger, #A0201A)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
                 >
                   Sign Out
                 </button>
@@ -1105,6 +1130,9 @@ export default function App() {
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       🌿 My Family Profiles
                     </span>
+                    <button className="btn btn-sm btn-primary" onClick={() => setShowFamilyModal(true)}>
+                      ➕ Manage / Add Student
+                    </button>
                   </h2>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div>
@@ -2540,6 +2568,100 @@ export default function App() {
             />
           </Field>
         </form>
+      </GroveDialog>
+
+      {/* FAMILY & CHILD PROFILES MANAGEMENT MODAL */}
+      <GroveDialog
+        open={showFamilyModal}
+        onClose={() => { setShowFamilyModal(false); setSubUserError(null); setSubUserSuccess(null); }}
+        title="Family & Student Profiles"
+        footer={<button className="btn btn-secondary" onClick={() => setShowFamilyModal(false)}>Close</button>}
+        width="520px"
+      >
+        <div>
+          {subUserSuccess && <Notice kind="success">{subUserSuccess}</Notice>}
+          {subUserError && <Notice kind="error">{subUserError}</Notice>}
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>Active Profiles</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--brand-wash, #E4EDE4)', borderRadius: '6px', border: '1.5px solid var(--line-strong, #6D7A6D)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                    {currentUser?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{currentUser?.name}</span>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{currentUser?.email}</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.7rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                  PARENT (ACTIVE)
+                </span>
+              </li>
+              {subUsers.map(sub => (
+                <li key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--oak-text, #8A5320)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                      {sub.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{sub.name}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{sub.email}</div>
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => {
+                      localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
+                      setCurrentUser(sub);
+                      setShowFamilyModal(false);
+                    }}
+                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                  >
+                    Switch to Child
+                  </button>
+                </li>
+              ))}
+              {subUsers.length === 0 && (
+                <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>No child profiles added yet. Create one below!</p>
+              )}
+            </ul>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1rem 0' }} />
+
+          <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.75rem', fontWeight: '700' }}>Add Child or Student Profile</h4>
+          <form onSubmit={handleNewSubUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <Field id="sub-name" label="Child's Full Name" required>
+              <input 
+                type="text" 
+                placeholder="e.g. Joey Jenkins" 
+                value={newSubUserForm.name}
+                onChange={(e) => setNewSubUserForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </Field>
+            <Field id="sub-email" label="Child's Email (used to log in)" required>
+              <input 
+                type="email" 
+                placeholder="e.g. joey@example.com" 
+                value={newSubUserForm.email}
+                onChange={(e) => setNewSubUserForm(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </Field>
+            <Field id="sub-pass" label="Child's Password" required>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={newSubUserForm.password}
+                onChange={(e) => setNewSubUserForm(prev => ({ ...prev, password: e.target.value }))}
+              />
+            </Field>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+              Create Student Profile
+            </button>
+          </form>
+        </div>
       </GroveDialog>
 
       {/* 7. CURRICULUM DETAIL VIEW */}
