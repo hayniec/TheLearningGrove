@@ -672,7 +672,7 @@ export default function App() {
       setSubUserSuccess("Child profile added successfully!");
     } catch (err) {
       console.error(err);
-      setSubUserError("Failed to create child profile");
+      setSubUserError(err.message || "Failed to create child profile");
     }
   };
 

@@ -268,13 +268,40 @@ export async function createSubUser(parentId, subUser) {
   const id = 'user-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const hashedPassword = await hashPassword(subUser.password);
   const newUser = {
-    ...subUser,
     id,
+    email: subUser.email,
     password: hashedPassword,
-    parentId: parentId
+    name: subUser.name,
+    role: subUser.role || 'Student',
+    parentId: parentId,
+    parentid: parentId
   };
-  const { error } = await supabase.from('users').insert([newUser]);
-  if (error) throw error;
+  
+  let { error } = await supabase.from('users').insert([newUser]);
+  if (error) {
+    console.warn("createSubUser dual-key insert warning, attempting fallback:", error);
+    const fallbackUser = {
+      id,
+      email: subUser.email,
+      password: hashedPassword,
+      name: subUser.name,
+      role: subUser.role || 'Student',
+      parentid: parentId
+    };
+    const res2 = await supabase.from('users').insert([fallbackUser]);
+    if (res2.error) {
+      const fallbackUser2 = {
+        id,
+        email: subUser.email,
+        password: hashedPassword,
+        name: subUser.name,
+        role: subUser.role || 'Student',
+        parentId: parentId
+      };
+      const res3 = await supabase.from('users').insert([fallbackUser2]);
+      if (res3.error) throw res3.error;
+    }
+  }
   return newUser;
 }
 
