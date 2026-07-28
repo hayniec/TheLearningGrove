@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://amillvpnviaymjbfunep.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtaWxsdnBudmlheW1qYmZ1bmVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxOTIwNTgsImV4cCI6MjEwMDc2ODA1OH0.LVAlU8mlQLZ3nWfa-G3XcivMixdQbb0HvHhhJzZ1W4Q';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -238,13 +238,20 @@ export async function createUser(user) {
   const id = 'user-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const hashedPassword = await hashPassword(user.password);
   const newUser = {
-    ...user,
     id,
+    email: user.email,
     password: hashedPassword,
-    parentId: user.parentId || null
+    name: user.name,
+    role: user.role || 'Parent'
   };
+  if (user.parentId) {
+    newUser.parentId = user.parentId;
+  }
   const { error } = await supabase.from('users').insert([newUser]);
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase createUser error:", error);
+    throw error;
+  }
   return newUser;
 }
 
@@ -252,7 +259,7 @@ export async function getSubUsers(parentId) {
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('parentId', parentId);
+    .or(`parentId.eq.${parentId},parentid.eq.${parentId}`);
   if (error) throw error;
   return data;
 }
