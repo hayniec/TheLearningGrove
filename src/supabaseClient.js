@@ -255,16 +255,60 @@ export async function createUser(user) {
   return newUser;
 }
 
-export async function getSubUsers(parentId) {
+export function getFamilyHeadId(user) {
+  if (!user) return null;
+  return user.parentId || user.parentid || user.id;
+}
+
+export async function getSubUsers(parentUserOrId) {
+  let targetId = typeof parentUserOrId === 'object' ? getFamilyHeadId(parentUserOrId) : parentUserOrId;
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .or(`parentId.eq.${parentId},parentid.eq.${parentId}`);
+    .or(`parentId.eq.${targetId},parentid.eq.${targetId}`)
+    .eq('role', 'Student');
   if (error) throw error;
-  return data;
+  return data || [];
 }
 
-export async function createSubUser(parentId, subUser) {
+export async function getCoParents(parentUser) {
+  const familyHeadId = getFamilyHeadId(parentUser);
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .or(`id.eq.${familyHeadId},parentId.eq.${familyHeadId},parentid.eq.${familyHeadId}`)
+    .eq('role', 'Parent');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function linkCoParent(currentParentUser, coParentEmail) {
+  const familyHeadId = getFamilyHeadId(currentParentUser);
+  const coParent = await getUserByEmail(coParentEmail);
+  if (!coParent) {
+    throw new Error(`No account found for "${coParentEmail}". Ask your co-parent to register first, then link them here!`);
+  }
+  if (coParent.role !== 'Parent') {
+    throw new Error(`Account "${coParentEmail}" is not registered as a Parent account.`);
+  }
+  if (coParent.id === currentParentUser.id) {
+    throw new Error("You are already the active parent of this household.");
+  }
+
+  // Update co-parent record to share familyHeadId
+  const { data, error } = await supabase
+    .from('users')
+    .update({ parentId: familyHeadId, parentid: familyHeadId })
+    .eq('id', coParent.id)
+    .select()
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || { ...coParent, parentId: familyHeadId, parentid: familyHeadId };
+}
+
+export async function createSubUser(parentUserOrId, subUser) {
+  const parentId = typeof parentUserOrId === 'object' ? getFamilyHeadId(parentUserOrId) : parentUserOrId;
   const id = 'user-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const hashedPassword = await hashPassword(subUser.password);
   const newUser = {

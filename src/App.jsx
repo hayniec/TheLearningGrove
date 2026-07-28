@@ -17,6 +17,8 @@ import {
   createUser,
   getSubUsers,
   createSubUser,
+  getCoParents,
+  linkCoParent,
   getPendingResources,
   approveResource,
   rejectResource,
@@ -151,6 +153,10 @@ export default function App() {
   // User Auth & Session States
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('grove_user') || 'null'));
   const [subUsers, setSubUsers] = useState([]);
+  const [coParents, setCoParents] = useState([]);
+  const [coParentEmailInput, setCoParentEmailInput] = useState('');
+  const [coParentError, setCoParentError] = useState(null);
+  const [coParentSuccess, setCoParentSuccess] = useState(null);
   const [pendingResources, setPendingResources] = useState([]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
@@ -336,11 +342,15 @@ export default function App() {
     if (currentUser) {
       localStorage.setItem('grove_user', JSON.stringify(currentUser));
       if (currentUser.role === 'Parent') {
-        getSubUsers(currentUser.id)
+        getSubUsers(currentUser)
           .then(data => setSubUsers(data))
           .catch(err => console.error("Error fetching subusers:", err));
+        getCoParents(currentUser)
+          .then(data => setCoParents(data))
+          .catch(err => console.error("Error fetching co-parents:", err));
       } else {
         setSubUsers([]);
+        setCoParents([]);
       }
       if (currentUser.role === 'Moderator') {
         getPendingResources()
@@ -673,6 +683,26 @@ export default function App() {
     } catch (err) {
       console.error(err);
       setSubUserError(err.message || "Failed to create child profile");
+    }
+  };
+
+  const handleLinkCoParentSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser || currentUser.role !== 'Parent') return;
+    setCoParentError(null);
+    setCoParentSuccess(null);
+
+    try {
+      const updated = await linkCoParent(currentUser, coParentEmailInput);
+      setCoParents(prev => [...prev.filter(p => p.id !== updated.id), updated]);
+      setCoParentEmailInput('');
+      setCoParentSuccess(`Successfully linked co-parent "${updated.name}" (${updated.email}) to your household!`);
+      // Refresh household children
+      const children = await getSubUsers(currentUser);
+      setSubUsers(children);
+    } catch (err) {
+      console.error(err);
+      setCoParentError(err.message || "Failed to link co-parent.");
     }
   };
 
@@ -2581,10 +2611,13 @@ export default function App() {
         <div>
           {subUserSuccess && <Notice kind="success">{subUserSuccess}</Notice>}
           {subUserError && <Notice kind="error">{subUserError}</Notice>}
+          {coParentSuccess && <Notice kind="success">{coParentSuccess}</Notice>}
+          {coParentError && <Notice kind="error">{coParentError}</Notice>}
 
+          {/* 1. CO-PARENTS & HOUSEHOLD MANAGERS */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>Active Profiles</h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>👨‍👩‍👧 Household Co-Parents</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--brand-wash, #E4EDE4)', borderRadius: '6px', border: '1.5px solid var(--line-strong, #6D7A6D)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
@@ -2596,9 +2629,51 @@ export default function App() {
                   </div>
                 </div>
                 <span style={{ fontSize: '0.7rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
-                  PARENT (ACTIVE)
+                  ACTIVE PARENT
                 </span>
               </li>
+              {coParents.filter(p => p.id !== currentUser?.id).map(cop => (
+                <li key={cop.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                      {cop.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{cop.name}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{cop.email}</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', background: 'var(--brand-wash, #E4EDE4)', color: 'var(--brand, #1E3F20)', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                    LINKED CO-PARENT
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <form onSubmit={handleLinkCoParentSubmit} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--ink, #1B201C)', display: 'block', marginBottom: '2px' }}>Link Another Parent Account by Email</label>
+                <input 
+                  type="email" 
+                  placeholder="e.g. spouse@example.com" 
+                  required
+                  value={coParentEmailInput}
+                  onChange={(e) => setCoParentEmailInput(e.target.value)}
+                  style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', fontSize: '0.85rem' }}
+                />
+              </div>
+              <button type="submit" className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                🔗 Link Co-Parent
+              </button>
+            </form>
+          </div>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1rem 0' }} />
+
+          {/* 2. STUDENT PROFILES */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>🎒 Household Student Profiles</h4>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {subUsers.map(sub => (
                 <li key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2624,19 +2699,17 @@ export default function App() {
                 </li>
               ))}
               {subUsers.length === 0 && (
-                <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>No child profiles added yet. Create one below!</p>
+                <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>No student profiles added yet. Create one below!</p>
               )}
             </ul>
           </div>
-
-          <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1rem 0' }} />
 
           <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.75rem', fontWeight: '700' }}>Add Child or Student Profile</h4>
           <form onSubmit={handleNewSubUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <Field id="sub-name" label="Child's Full Name" required>
               <input 
                 type="text" 
-                placeholder="e.g. Joey Jenkins" 
+                placeholder="e.g. Emmett H" 
                 value={newSubUserForm.name}
                 onChange={(e) => setNewSubUserForm(prev => ({ ...prev, name: e.target.value }))}
               />
@@ -2644,7 +2717,7 @@ export default function App() {
             <Field id="sub-email" label="Child's Email (used to log in)" required>
               <input 
                 type="email" 
-                placeholder="e.g. joey@example.com" 
+                placeholder="e.g. emmett@example.com" 
                 value={newSubUserForm.email}
                 onChange={(e) => setNewSubUserForm(prev => ({ ...prev, email: e.target.value }))}
               />
