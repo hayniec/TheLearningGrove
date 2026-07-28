@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import mysql from 'mysql2/promise';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
 export function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -9,6 +10,11 @@ export function hashPassword(password) {
 
 // Determine connection modes and environment parameters
 const isMySQL = process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
+const isSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY;
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabase = isSupabase ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const dbConfig = {
   host: process.env.DB_HOST,
@@ -680,6 +686,14 @@ async function initializeMySQLTables() {
 }
 
 export async function getPosts() {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     return db.posts || [];
@@ -690,7 +704,6 @@ export async function getPosts() {
 }
 
 export async function addPost(item) {
-  const db = await getDB();
   const id = 'post-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const newItem = { 
     ...item, 
@@ -699,6 +712,13 @@ export async function addPost(item) {
     userId: item.userId || 'parent-1'
   };
 
+  if (isSupabase) {
+    const { error } = await supabase.from('posts').insert([newItem]);
+    if (error) throw error;
+    return newItem;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     if (!db.posts) db.posts = [];
     db.posts.push(newItem);
@@ -716,6 +736,18 @@ export async function addPost(item) {
 // --- PUBLIC DATABASE INTERACTION API ---
 
 export async function getCurricula() {
+  if (isSupabase) {
+    const { data, error } = await supabase.from('curricula').select('*');
+    if (error) throw error;
+    return data.map(r => ({
+      ...r,
+      onlineResources: !!r.onlineResources,
+      selfPaced: !!r.selfPaced,
+      classParticipation: !!r.classParticipation,
+      videos: !!r.videos,
+      gradeLevels: r.gradeLevels ? r.gradeLevels.split(',') : []
+    }));
+  }
   const db = await getDB();
   if (!isMySQL) {
     return db.curricula;
@@ -734,6 +766,15 @@ export async function getCurricula() {
 }
 
 export async function getCurriculumReviews(curriculumId) {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('curriculum_reviews')
+      .select('*')
+      .eq('curriculumId', curriculumId)
+      .order('createdAt', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     return (db.curriculum_reviews || []).filter(r => r.curriculumId === curriculumId).sort((a, b) => b.createdAt - a.createdAt);
@@ -744,7 +785,6 @@ export async function getCurriculumReviews(curriculumId) {
 }
 
 export async function addCurriculum(item) {
-  const db = await getDB();
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
   
   const { rating, favoritePart, description, userId, userName } = item;
@@ -757,6 +797,7 @@ export async function addCurriculum(item) {
     grouping: item.grouping,
     cost: item.cost,
     rating: Number(rating) || 5,
+    favoritePart: favoritePart || '',
     answerKey: item.answerKey,
     methodology: item.methodology,
     onlineResources: !!item.onlineResources,
@@ -765,7 +806,7 @@ export async function addCurriculum(item) {
     worldview: item.worldview,
     videos: !!item.videos,
     description: description,
-    gradeLevels: item.gradeLevels,
+    gradeLevels: item.gradeLevels ? item.gradeLevels.join(',') : '',
     userId: userId || 'parent-1'
   };
 
@@ -780,27 +821,52 @@ export async function addCurriculum(item) {
     createdAt: Date.now()
   };
 
+  if (isSupabase) {
+    const { error: currErr } = await supabase
+      .from('curricula')
+      .insert([newCurriculumItem]);
+    if (currErr) throw currErr;
+
+    const { error: revErr } = await supabase
+      .from('curriculum_reviews')
+      .insert([newReviewItem]);
+    if (revErr) throw revErr;
+
+    return {
+      ...newCurriculumItem,
+      gradeLevels: item.gradeLevels || []
+    };
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
-    db.curricula.push(newCurriculumItem);
+    // Convert grade levels to array for local JSON
+    const localCurriculumItem = {
+      ...newCurriculumItem,
+      gradeLevels: item.gradeLevels || []
+    };
+    db.curricula.push(localCurriculumItem);
     if (!db.curriculum_reviews) db.curriculum_reviews = [];
     db.curriculum_reviews.push(newReviewItem);
     await saveLocalDB(db);
-    return newCurriculumItem;
+    return localCurriculumItem;
   } else {
     await db.query(
       "INSERT INTO curricula VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [newCurriculumItem.id, newCurriculumItem.name, newCurriculumItem.subject, newCurriculumItem.delivery, newCurriculumItem.grouping, newCurriculumItem.cost, newCurriculumItem.rating, newReviewItem.favoritePart, newCurriculumItem.answerKey, newCurriculumItem.methodology, newCurriculumItem.onlineResources ? 1 : 0, newCurriculumItem.selfPaced ? 1 : 0, newCurriculumItem.classParticipation ? 1 : 0, newCurriculumItem.worldview, newCurriculumItem.videos ? 1 : 0, newCurriculumItem.description, newCurriculumItem.gradeLevels ? newCurriculumItem.gradeLevels.join(',') : '', newCurriculumItem.userId]
+      [newCurriculumItem.id, newCurriculumItem.name, newCurriculumItem.subject, newCurriculumItem.delivery, newCurriculumItem.grouping, newCurriculumItem.cost, newCurriculumItem.rating, newReviewItem.favoritePart, newCurriculumItem.answerKey, newCurriculumItem.methodology, newCurriculumItem.onlineResources ? 1 : 0, newCurriculumItem.selfPaced ? 1 : 0, newCurriculumItem.classParticipation ? 1 : 0, newCurriculumItem.worldview, newCurriculumItem.videos ? 1 : 0, newCurriculumItem.description, newCurriculumItem.gradeLevels, newCurriculumItem.userId]
     );
     await db.query(
       "INSERT INTO curriculum_reviews VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [newReviewItem.id, newReviewItem.curriculumId, newReviewItem.userId, newReviewItem.userName, newReviewItem.rating, newReviewItem.favoritePart, newReviewItem.description, newReviewItem.createdAt]
     );
-    return newCurriculumItem;
+    return {
+      ...newCurriculumItem,
+      gradeLevels: item.gradeLevels || []
+    };
   }
 }
 
 export async function addCurriculumReview(curriculumId, reviewItem) {
-  const db = await getDB();
   const id = `review-${curriculumId}-${Date.now().toString().slice(-4)}`;
   const newReview = {
     id,
@@ -813,6 +879,52 @@ export async function addCurriculumReview(curriculumId, reviewItem) {
     createdAt: Date.now()
   };
 
+  if (isSupabase) {
+    const { error: insErr } = await supabase
+      .from('curriculum_reviews')
+      .insert([newReview]);
+    if (insErr) throw insErr;
+
+    const { data: reviews, error: revErr } = await supabase
+      .from('curriculum_reviews')
+      .select('rating')
+      .eq('curriculumId', curriculumId);
+    if (revErr) throw revErr;
+
+    const avgRating = reviews.length > 0
+      ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
+      : 5.0;
+
+    const onlineVal = reviewItem.onlineResources ? true : false;
+    const selfVal = reviewItem.selfPaced ? true : false;
+    const classVal = reviewItem.classParticipation ? true : false;
+    const videosVal = reviewItem.videos ? true : false;
+    const gradesStr = reviewItem.gradeLevels ? reviewItem.gradeLevels.join(',') : '';
+
+    const { error: updErr } = await supabase
+      .from('curricula')
+      .update({
+        rating: avgRating,
+        subject: reviewItem.subject,
+        delivery: reviewItem.delivery,
+        grouping: reviewItem.grouping,
+        cost: reviewItem.cost,
+        answerKey: reviewItem.answerKey,
+        methodology: reviewItem.methodology,
+        onlineResources: onlineVal,
+        selfPaced: selfVal,
+        classParticipation: classVal,
+        worldview: reviewItem.worldview,
+        videos: videosVal,
+        gradeLevels: gradesStr
+      })
+      .eq('id', curriculumId);
+    if (updErr) throw updErr;
+
+    return newReview;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     if (!db.curriculum_reviews) db.curriculum_reviews = [];
     db.curriculum_reviews.push(newReview);
@@ -891,6 +1003,11 @@ export async function addCurriculumReview(curriculumId, reviewItem) {
 }
 
 export async function getFieldTrips() {
+  if (isSupabase) {
+    const { data, error } = await supabase.from('fieldtrips').select('*');
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     return db.fieldtrips;
@@ -901,10 +1018,16 @@ export async function getFieldTrips() {
 }
 
 export async function addFieldTrip(item) {
-  const db = await getDB();
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
   const newItem = { ...item, id, userId: item.userId || 'parent-1' };
 
+  if (isSupabase) {
+    const { error } = await supabase.from('fieldtrips').insert([newItem]);
+    if (error) throw error;
+    return newItem;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     db.fieldtrips.push(newItem);
     await saveLocalDB(db);
@@ -919,6 +1042,11 @@ export async function addFieldTrip(item) {
 }
 
 export async function getBusinessAds() {
+  if (isSupabase) {
+    const { data, error } = await supabase.from('businessads').select('*');
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     return db.businessads;
@@ -929,10 +1057,16 @@ export async function getBusinessAds() {
 }
 
 export async function addBusinessAd(item) {
-  const db = await getDB();
   const id = item.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
   const newItem = { ...item, id, userId: item.userId || 'parent-1' };
 
+  if (isSupabase) {
+    const { error } = await supabase.from('businessads').insert([newItem]);
+    if (error) throw error;
+    return newItem;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     db.businessads.push(newItem);
     await saveLocalDB(db);
@@ -947,6 +1081,14 @@ export async function addBusinessAd(item) {
 }
 
 export async function getResources() {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('approved', true);
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     return (db.resources || []).filter(r => r.approved);
@@ -957,7 +1099,6 @@ export async function getResources() {
 }
 
 export async function addResource(item) {
-  const db = await getDB();
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
   const newItem = { 
     ...item, 
@@ -966,6 +1107,13 @@ export async function addResource(item) {
     approved: item.approved !== undefined ? item.approved : false
   };
 
+  if (isSupabase) {
+    const { error } = await supabase.from('resources').insert([newItem]);
+    if (error) throw error;
+    return newItem;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     db.resources.push(newItem);
     await saveLocalDB(db);
@@ -980,6 +1128,15 @@ export async function addResource(item) {
 }
 
 export async function getUserByEmail(email) {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', email)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     if (!db.users) db.users = [];
@@ -991,7 +1148,6 @@ export async function getUserByEmail(email) {
 }
 
 export async function createUser(user) {
-  const db = await getDB();
   const id = 'user-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const newUser = {
     ...user,
@@ -1000,6 +1156,13 @@ export async function createUser(user) {
     parentId: user.parentId || null
   };
 
+  if (isSupabase) {
+    const { error } = await supabase.from('users').insert([newUser]);
+    if (error) throw error;
+    return newUser;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     if (!db.users) db.users = [];
     db.users.push(newUser);
@@ -1015,6 +1178,14 @@ export async function createUser(user) {
 }
 
 export async function getSubUsers(parentId) {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('parentId', parentId);
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     if (!db.users) db.users = [];
@@ -1026,7 +1197,6 @@ export async function getSubUsers(parentId) {
 }
 
 export async function createSubUser(parentId, subUser) {
-  const db = await getDB();
   const id = 'user-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const newUser = {
     ...subUser,
@@ -1035,6 +1205,13 @@ export async function createSubUser(parentId, subUser) {
     parentId: parentId
   };
 
+  if (isSupabase) {
+    const { error } = await supabase.from('users').insert([newUser]);
+    if (error) throw error;
+    return newUser;
+  }
+
+  const db = await getDB();
   if (!isMySQL) {
     if (!db.users) db.users = [];
     db.users.push(newUser);
@@ -1050,6 +1227,14 @@ export async function createSubUser(parentId, subUser) {
 }
 
 export async function getPendingResources() {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('approved', false);
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     if (!db.resources) db.resources = [];
@@ -1061,6 +1246,16 @@ export async function getPendingResources() {
 }
 
 export async function approveResource(resourceId) {
+  if (isSupabase) {
+    const { data, error } = await supabase
+      .from('resources')
+      .update({ approved: true })
+      .eq('id', resourceId)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
   const db = await getDB();
   if (!isMySQL) {
     if (!db.resources) db.resources = [];
@@ -1079,6 +1274,22 @@ export async function approveResource(resourceId) {
 }
 
 export async function rejectResource(resourceId) {
+  if (isSupabase) {
+    const { data: existing, error: getErr } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('id', resourceId)
+      .maybeSingle();
+    if (getErr) throw getErr;
+
+    const { error: delErr } = await supabase
+      .from('resources')
+      .delete()
+      .eq('id', resourceId);
+    if (delErr) throw delErr;
+
+    return existing;
+  }
   const db = await getDB();
   if (!isMySQL) {
     if (!db.resources) db.resources = [];
