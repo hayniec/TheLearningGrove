@@ -254,6 +254,23 @@ export default function App() {
     location: '', gradeRecommendation: 'All Ages / Family Outing',
     city: '', state: '', zip: '', websiteUrl: ''
   });
+  const [selectedTripGrades, setSelectedTripGrades] = useState(['All Ages / Family Outing']);
+
+  const handleTripGradeToggle = (option) => {
+    if (option === 'All Ages / Family Outing') {
+      setSelectedTripGrades(['All Ages / Family Outing']);
+      return;
+    }
+    setSelectedTripGrades(prev => {
+      const filtered = prev.filter(g => g !== 'All Ages / Family Outing');
+      if (filtered.includes(option)) {
+        const next = filtered.filter(g => g !== option);
+        return next.length === 0 ? ['All Ages / Family Outing'] : next;
+      } else {
+        return [...filtered, option];
+      }
+    });
+  };
   const [newAd, setNewAd] = useState({
     owner: '', businessName: '', description: '', category: 'Cottage Industries',
     businessType: '', contact: '', link: ''
@@ -617,11 +634,20 @@ export default function App() {
     }
 
     try {
-      const payload = { ...newTrip, lat, lng, userId: currentUser ? currentUser.id : 'parent-1' };
+      const gradeRecommendationString = selectedTripGrades.length > 0
+        ? selectedTripGrades.join(', ')
+        : 'All Ages / Family Outing';
+      const payload = { 
+        ...newTrip, 
+        gradeRecommendation: gradeRecommendationString, 
+        lat, lng, 
+        userId: currentUser ? currentUser.id : 'parent-1' 
+      };
       const createdTrip = await addFieldTrip(payload);
       setFieldTrips(prev => [createdTrip, ...prev.filter(t => t.id !== createdTrip.id)]);
       setShowTripModal(false);
       setFormError(null);
+      setSelectedTripGrades(['All Ages / Family Outing']);
       setNewTrip({
         name: '', subject: 'Science', cost: 'Free Admission', rating: 5, description: '',
         location: '', gradeRecommendation: 'All Ages / Family Outing',
@@ -2819,19 +2845,44 @@ export default function App() {
               />
             </Field>
 
-            <Field id="trip-grade" label="Recommended Ages/Grades" required>
-              <select
-                value={newTrip.gradeRecommendation}
-                onChange={(e) => setNewTrip(prev => ({...prev, gradeRecommendation: e.target.value}))}
-              >
-                <option value="All Ages / Family Outing">All Ages / Family Outing</option>
-                <option value="Pre-K & Kindergarten (Ages 3-5)">Pre-K & Kindergarten (Ages 3-5)</option>
-                <option value="Early Elementary (Grades K-2 / Ages 5-8)">Early Elementary (Grades K-2 / Ages 5-8)</option>
-                <option value="Upper Elementary (Grades 3-5 / Ages 8-11)">Upper Elementary (Grades 3-5 / Ages 8-11)</option>
-                <option value="Middle School (Grades 6-8 / Ages 11-14)">Middle School (Grades 6-8 / Ages 11-14)</option>
-                <option value="High School (Grades 9-12 / Ages 14-18)">High School (Grades 9-12 / Ages 14-18)</option>
-                <option value="Teens & Adults (13+)">Teens & Adults (13+)</option>
-              </select>
+            <Field id="trip-grade" label="Recommended Ages/Grades (Select All That Apply)" required>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.35rem' }}>
+                {[
+                  'All Ages / Family Outing',
+                  'Pre-K & Kindergarten (Ages 3-5)',
+                  'Early Elementary (Grades K-2 / Ages 5-8)',
+                  'Upper Elementary (Grades 3-5 / Ages 8-11)',
+                  'Middle School (Grades 6-8 / Ages 11-14)',
+                  'High School (Grades 9-12 / Ages 14-18)',
+                  'Teens & Adults (13+)'
+                ].map(option => {
+                  const isSelected = selectedTripGrades.includes(option);
+                  return (
+                    <button
+                      type="button"
+                      key={option}
+                      onClick={() => handleTripGradeToggle(option)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '20px',
+                        border: isSelected ? '1.5px solid var(--brand, #1E3F20)' : '1px solid var(--line-strong, #6D7A6D)',
+                        background: isSelected ? 'var(--brand, #1E3F20)' : 'var(--surface-card, #FFFFFF)',
+                        color: isSelected ? '#FFFFFF' : 'var(--ink, #1B201C)',
+                        fontSize: '0.75rem',
+                        fontWeight: isSelected ? '700' : '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem'
+                      }}
+                    >
+                      <span>{isSelected ? '✓' : '+'}</span>
+                      <span>{option}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
           </div>
 
