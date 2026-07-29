@@ -34,6 +34,9 @@ import {
 } from './supabaseClient';
 
 // --- INLINE SVG ICONS (PREMIUM, ZERO-LATENCY) ---
+const HomeIcon = () => (
+  <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+);
 const DashboardIcon = () => (
   <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
 );
@@ -135,7 +138,7 @@ function ThemeToggle() {
 
 export default function App() {
   // Navigation State
-  const [activeTab, setActiveTab] = useState('explorer');
+  const [activeTab, setActiveTab] = useState('home');
 
   // Community Forum State
   const initialSamplePosts = [
@@ -1173,6 +1176,15 @@ export default function App() {
             <ul className="nav-list">
               <li className="nav-item">
                 <button 
+                  className={`nav-link ${activeTab === 'home' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('home'); setIsMobileDrawerOpen(false); }}
+                >
+                  <HomeIcon />
+                  <span>Welcome Home</span>
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
                   className={`nav-link ${activeTab === 'explorer' ? 'active' : ''}`}
                   onClick={() => { setActiveTab('explorer'); setIsMobileDrawerOpen(false); }}
                 >
@@ -1196,15 +1208,6 @@ export default function App() {
                 >
                   <PinIcon />
                   <span>Field Trips</span>
-                </button>
-              </li>
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'businesses' ? 'active' : ''}`}
-                  onClick={() => { setActiveTab('businesses'); setIsMobileDrawerOpen(false); }}
-                >
-                  <BusinessIcon />
-                  <span>Business Board</span>
                 </button>
               </li>
             </ul>
@@ -1435,6 +1438,185 @@ export default function App() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================= */}
+        {/* TAB 0: HOME / WELCOME FRONT PAGE       */}
+        {/* ======================================= */}
+        {activeTab === 'home' && (
+          <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+            {/* HERO BANNER SECTION */}
+            <header style={{ 
+              background: 'linear-gradient(135deg, var(--brand, #1E3F20) 0%, #2A5A2E 100%)', 
+              color: '#FFFFFF',
+              borderRadius: '16px',
+              padding: '2.5rem 2rem',
+              marginBottom: '2rem',
+              boxShadow: '0 8px 24px rgba(30,63,32,0.15)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ position: 'relative', zIndex: 2, maxWidth: '720px' }}>
+                <span style={{ 
+                  background: 'rgba(255,255,255,0.18)', 
+                  padding: '4px 12px', 
+                  borderRadius: '20px', 
+                  fontSize: '0.8rem', 
+                  fontWeight: '700', 
+                  letterSpacing: '0.5px',
+                  display: 'inline-block',
+                  marginBottom: '0.75rem' 
+                }}>
+                  🌿 HOMESCHOOL FAMILY NETWORK
+                </span>
+
+                <h1 style={{ fontSize: '2.2rem', fontWeight: '800', lineHeight: '1.25', margin: '0 0 1rem 0', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                  Welcome to The Learning Grove
+                </h1>
+
+                <p style={{ fontSize: '1.05rem', lineHeight: '1.6', color: '#E4EDE4', marginBottom: '1.75rem' }}>
+                  A supportive, parent-driven community for homeschooling families. Discover honest curriculum reviews, join moderated discussion channels, and coordinate local co-op field trips.
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button 
+                    className="btn" 
+                    onClick={() => setActiveTab('explorer')}
+                    style={{ background: '#FFFFFF', color: 'var(--brand, #1E3F20)', fontWeight: '700', padding: '0.65rem 1.25rem', border: 'none' }}
+                  >
+                    📚 Explore Curricula
+                  </button>
+
+                  <button 
+                    className="btn" 
+                    onClick={() => setActiveTab('community')}
+                    style={{ background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', fontWeight: '700', padding: '0.65rem 1.25rem', border: '1px solid rgba(255,255,255,0.4)' }}
+                  >
+                    💬 Discussion Board
+                  </button>
+
+                  <button 
+                    className="btn" 
+                    onClick={() => setActiveTab('fieldtrips')}
+                    style={{ background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', fontWeight: '700', padding: '0.65rem 1.25rem', border: '1px solid rgba(255,255,255,0.4)' }}
+                  >
+                    🌲 View Field Trips
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            {/* LIVE IMPACT COUNTER STATS BANNER */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+              gap: '1rem', 
+              marginBottom: '2.5rem' 
+            }}>
+              <div style={{ background: 'var(--surface-card, #FFFFFF)', border: '1px solid var(--line-strong, #6D7A6D)', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '2rem' }}>📚</span>
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--brand, #1E3F20)', lineHeight: '1' }}>{curricula.length || stats.curricula || 14}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)', fontWeight: '600', marginTop: '0.2rem' }}>Reviewed Curricula</div>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--surface-card, #FFFFFF)', border: '1px solid var(--line-strong, #6D7A6D)', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '2rem' }}>💬</span>
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--brand, #1E3F20)', lineHeight: '1' }}>{posts.length || 6}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)', fontWeight: '600', marginTop: '0.2rem' }}>Active Discussions</div>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--surface-card, #FFFFFF)', border: '1px solid var(--line-strong, #6D7A6D)', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '2rem' }}>🌲</span>
+                <div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--brand, #1E3F20)', lineHeight: '1' }}>{fieldTrips.length || stats.trips || 8}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)', fontWeight: '600', marginTop: '0.2rem' }}>Co-op Field Trips</div>
+                </div>
+              </div>
+            </div>
+
+            {/* CORE PILLARS SHOWCASE CARDS */}
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--ink, #1B201C)', marginBottom: '1.25rem' }}>
+              Explore Community Features
+            </h2>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+              {/* Card 1: Curricula */}
+              <div 
+                onClick={() => setActiveTab('explorer')}
+                style={{ 
+                  background: 'var(--surface-card, #FFFFFF)', 
+                  border: '1.5px solid var(--line-strong, #6D7A6D)', 
+                  borderRadius: '12px', 
+                  padding: '1.5rem', 
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+              >
+                <div style={{ fontSize: '2.2rem', marginBottom: '0.75rem' }}>📚</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--brand, #1E3F20)', marginBottom: '0.5rem' }}>
+                  Parent Curriculum Explorer
+                </h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--ink-muted, #556056)', lineHeight: '1.5', marginBottom: '1rem' }}>
+                  Browse authentic reviews from experienced parents. Filter by grade level (K–12), learning style, and subject area.
+                </p>
+                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--brand, #1E3F20)', textDecoration: 'underline' }}>
+                  Search Curricula &rarr;
+                </span>
+              </div>
+
+              {/* Card 2: Community */}
+              <div 
+                onClick={() => setActiveTab('community')}
+                style={{ 
+                  background: 'var(--surface-card, #FFFFFF)', 
+                  border: '1.5px solid var(--line-strong, #6D7A6D)', 
+                  borderRadius: '12px', 
+                  padding: '1.5rem', 
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+              >
+                <div style={{ fontSize: '2.2rem', marginBottom: '0.75rem' }}>💬</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--brand, #1E3F20)', marginBottom: '0.5rem' }}>
+                  Community Discussion Boards
+                </h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--ink-muted, #556056)', lineHeight: '1.5', marginBottom: '1rem' }}>
+                  Join moderated channels for Curriculum Q&A, High School Prep, and Teaching Tips. Filter topics using custom parent hashtags (`#Math`, `#SpecialNeeds`).
+                </p>
+                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--brand, #1E3F20)', textDecoration: 'underline' }}>
+                  Join Discussions &rarr;
+                </span>
+              </div>
+
+              {/* Card 3: Field Trips */}
+              <div 
+                onClick={() => setActiveTab('fieldtrips')}
+                style={{ 
+                  background: 'var(--surface-card, #FFFFFF)', 
+                  border: '1.5px solid var(--line-strong, #6D7A6D)', 
+                  borderRadius: '12px', 
+                  padding: '1.5rem', 
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+              >
+                <div style={{ fontSize: '2.2rem', marginBottom: '0.75rem' }}>🌲</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--brand, #1E3F20)', marginBottom: '0.5rem' }}>
+                  Co-op & Field Trip Registry
+                </h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--ink-muted, #556056)', lineHeight: '1.5', marginBottom: '1rem' }}>
+                  Discover local group outings, museum discount days, and co-op gatherings organised by fellow homeschool families.
+                </p>
+                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--brand, #1E3F20)', textDecoration: 'underline' }}>
+                  View Outings &rarr;
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -2022,13 +2204,7 @@ export default function App() {
                 <div>
                   <strong style={{ color: 'var(--ink, #1B201C)', fontSize: '0.9rem' }}>Family-Friendly & Actively Moderated Community</strong>
                   <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)' }}>
-                    All posts and replies are overseen by Community Moderators. Commercial ads should be listed on the{' '}
-                    <a 
-                      onClick={() => setActiveTab('businesses')} 
-                      style={{ color: 'var(--brand, #1E3F20)', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer' }}
-                    >
-                      🏪 Business Board
-                    </a>.
+                    All posts and replies are overseen by Community Moderators to keep our space family-friendly, civil, and encouraging.
                   </div>
                 </div>
               </div>
