@@ -30,6 +30,8 @@ import {
   requestCommunityDiscussion,
   getDiscussionRequests,
   approveDiscussionRequest,
+  deleteSubUser,
+  deleteUserAccount,
   hashPassword
 } from './supabaseClient';
 
@@ -3261,17 +3263,33 @@ export default function App() {
                       <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{sub.email}</div>
                     </div>
                   </div>
-                  <button
-                    className="btn btn-sm btn-secondary"
-                    onClick={() => {
-                      localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
-                      setCurrentUser(sub);
-                      setShowFamilyModal(false);
-                    }}
-                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                  >
-                    Switch to Child
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => {
+                        localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
+                        setCurrentUser(sub);
+                        setShowFamilyModal(false);
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                    >
+                      Switch Profile
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to remove ${sub.name}'s student profile?`)) {
+                          await deleteSubUser(sub.id);
+                          setSubUsers(prev => prev.filter(s => s.id !== sub.id));
+                          setSubUserSuccess(`Removed student profile "${sub.name}".`);
+                        }
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '2px 8px', background: 'var(--danger-wash, #FBE9E7)', color: 'var(--danger, #A0201A)', border: '1px solid var(--danger, #A0201A)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
+                    >
+                      🗑️ Remove
+                    </button>
+                  </div>
                 </li>
               ))}
               {subUsers.length === 0 && (
@@ -3310,6 +3328,36 @@ export default function App() {
               Create Student Profile
             </button>
           </form>
+
+          <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1.5rem 0 1rem 0' }} />
+
+          {/* 3. DANGER ZONE: ACCOUNT DELETION */}
+          <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--danger-wash, #FBE9E7)', border: '1px solid var(--danger, #A0201A)' }}>
+            <h4 style={{ fontSize: '0.85rem', color: 'var(--danger, #A0201A)', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
+              ⚠️ Danger Zone: Delete Account & Data
+            </h4>
+            <p style={{ fontSize: '0.75rem', color: 'var(--ink-muted, #556056)', margin: '0 0 0.75rem 0', lineHeight: '1.4' }}>
+              Permanently delete your parent account and any linked student profiles. This action cannot be undone.
+            </p>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={async () => {
+                if (window.confirm(`Are you sure you want to permanently delete your parent account (${currentUser?.email}) and all linked child profiles? This action cannot be undone.`)) {
+                  await deleteUserAccount(currentUser.id);
+                  localStorage.removeItem('grove_user');
+                  localStorage.removeItem('grove_parent_user');
+                  setCurrentUser(null);
+                  setSubUsers([]);
+                  setShowFamilyModal(false);
+                  alert("Your account and linked family data have been permanently deleted.");
+                }
+              }}
+              style={{ background: 'var(--danger, #A0201A)', color: '#FFFFFF', border: 'none', fontWeight: '700', fontSize: '0.75rem', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              🗑️ Delete My Account & Household Data
+            </button>
+          </div>
         </div>
       </GroveDialog>
 

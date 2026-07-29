@@ -150,30 +150,41 @@ export async function addCurriculumReview(curriculumId, reviewItem) {
 // --- FIELD TRIPS ---
 export async function getFieldTrips() {
   const { data, error } = await supabase.from('fieldtrips').select('*');
-  if (error) throw error;
-  return data;
+  const localTrips = JSON.parse(localStorage.getItem('grove_custom_fieldtrips') || '[]');
+  if (error) {
+    console.warn("getFieldTrips error, serving local trips:", error);
+    return localTrips;
+  }
+  const remoteIds = new Set((data || []).map(d => d.id));
+  const merged = [...(data || []), ...localTrips.filter(lt => !remoteIds.has(lt.id))];
+  return merged;
 }
 
 export async function addFieldTrip(item) {
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
+  const dbUserId = (item.userId && !item.userId.startsWith('parent-') && !item.userId.startsWith('student-') && !item.userId.startsWith('sub-'))
+    ? item.userId
+    : null;
+
   const newItem = { 
     ...item, 
     id, 
     cost: item.cost ? item.cost.slice(0, 30) : 'Free',
-    userId: item.userId || 'parent-1' 
+    userId: dbUserId 
   };
+
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_fieldtrips') || '[]');
+  localStorage.setItem('grove_custom_fieldtrips', JSON.stringify([newItem, ...existingLocal]));
+
   try {
     const { error } = await supabase.from('fieldtrips').insert([newItem]);
     if (error) {
-      console.warn("addFieldTrip first insert warning, attempting short cost fallback:", error);
+      console.warn("addFieldTrip insert warning, attempting short cost fallback:", error);
       const fallbackItem = { ...newItem, cost: (item.cost || 'Free').slice(0, 10) };
-      const { error: err2 } = await supabase.from('fieldtrips').insert([fallbackItem]);
-      if (err2) {
-        console.warn("Supabase fieldtrips table error, falling back locally:", err2);
-      }
+      await supabase.from('fieldtrips').insert([fallbackItem]);
     }
   } catch (err) {
-    console.warn("Supabase network exception, falling back locally:", err);
+    console.warn("Supabase network exception, saved locally:", err);
   }
   return newItem;
 }
@@ -535,4 +546,26 @@ export async function approveDiscussionRequest(requestId, requestObj) {
   });
 
   return newPost;
+}
+
+// --- ACCOUNT & PROFILE DELETION ---
+export async function deleteSubUser(childId) {
+  try {
+    const { error } = await supabase.from('users').delete().eq('id', childId);
+    if (error) console.warn("deleteSubUser DB warning:", error);
+  } catch (err) {
+    console.warn("deleteSubUser exception:", err);
+  }
+  return true;
+}
+
+export async function deleteUserAccount(userId) {
+  try {
+    await supabase.from('users').delete().eq('parentId', userId);
+    const { error } = await supabase.from('users').delete().eq('id', userId);
+    if (error) console.warn("deleteUserAccount DB warning:", error);
+  } catch (err) {
+    console.warn("deleteUserAccount exception:", err);
+  }
+  return true;
 }

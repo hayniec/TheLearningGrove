@@ -440,23 +440,24 @@ a:focus-visible,
    9. NAVIGATION  — fixes the low-contrast rgba(255,255,255,.6/.7) nav text
    -------------------------------------------------------------------------- */
 .sidebar {
-  background: var(--brand-fill);
-  color: var(--brand-on-fill);
+  background: #1E3F20;
+  color: #FFFFFF;
 }
 :root[data-theme="dark"] .sidebar {
-  background: var(--surface-card);
-  border-right: 1px solid var(--line-subtle);
+  background: #0E2010 !important;
+  color: #FFFFFF !important;
+  border-right: 1px solid #1E3F20 !important;
 }
 
 .nav-link {
   min-height: var(--tap-min);
-  color: #C3D3C3;                 /* 7.5:1 on forest — was 2.9:1 */
+  color: #E4EDE4;
   font-size: var(--text-base);
 }
-:root[data-theme="dark"] .nav-link { color: var(--ink-muted); }
+:root[data-theme="dark"] .nav-link { color: #E4EDE4 !important; }
 
 .nav-link:hover { color: #FFFFFF; background: rgba(255,255,255,.12); }
-:root[data-theme="dark"] .nav-link:hover { color: var(--ink); background: var(--surface-raised); }
+:root[data-theme="dark"] .nav-link:hover { color: #FFFFFF !important; background: rgba(255,255,255,.15) !important; }
 
 /* Active state carries a shape change, not just colour (WCAG 1.4.1) */
 .nav-link.active,
@@ -468,9 +469,9 @@ a:focus-visible,
 }
 :root[data-theme="dark"] .nav-link.active,
 :root[data-theme="dark"] .nav-link[aria-current="page"] {
-  color: var(--ink);
-  background: var(--brand-wash);
-  border-left-color: var(--brand);
+  color: #FFFFFF !important;
+  background: rgba(255,255,255,.22) !important;
+  border-left-color: #B77C43 !important;
 }
 
 .sidebar-footer { color: #B4C4B4; font-size: var(--text-xs); }
