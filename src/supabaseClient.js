@@ -162,12 +162,18 @@ export async function addFieldTrip(item) {
     cost: item.cost ? item.cost.slice(0, 30) : 'Free',
     userId: item.userId || 'parent-1' 
   };
-  const { error } = await supabase.from('fieldtrips').insert([newItem]);
-  if (error) {
-    console.warn("addFieldTrip first insert warning, attempting short cost fallback:", error);
-    const fallbackItem = { ...newItem, cost: (item.cost || 'Free').slice(0, 10) };
-    const { error: err2 } = await supabase.from('fieldtrips').insert([fallbackItem]);
-    if (err2) throw err2;
+  try {
+    const { error } = await supabase.from('fieldtrips').insert([newItem]);
+    if (error) {
+      console.warn("addFieldTrip first insert warning, attempting short cost fallback:", error);
+      const fallbackItem = { ...newItem, cost: (item.cost || 'Free').slice(0, 10) };
+      const { error: err2 } = await supabase.from('fieldtrips').insert([fallbackItem]);
+      if (err2) {
+        console.warn("Supabase fieldtrips table error, falling back locally:", err2);
+      }
+    }
+  } catch (err) {
+    console.warn("Supabase network exception, falling back locally:", err);
   }
   return newItem;
 }

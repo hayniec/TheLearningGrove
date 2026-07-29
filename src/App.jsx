@@ -618,7 +618,8 @@ export default function App() {
 
     try {
       const payload = { ...newTrip, lat, lng, userId: currentUser ? currentUser.id : 'parent-1' };
-      await addFieldTrip(payload);
+      const createdTrip = await addFieldTrip(payload);
+      setFieldTrips(prev => [createdTrip, ...prev.filter(t => t.id !== createdTrip.id)]);
       setShowTripModal(false);
       setFormError(null);
       setNewTrip({
@@ -629,7 +630,7 @@ export default function App() {
       fetchData();
     } catch (err) {
       console.error(err);
-      setFormError("An unexpected error occurred while posting field trip.");
+      setFormError(err?.message || "An unexpected error occurred while posting field trip.");
     }
   };
 
