@@ -607,6 +607,23 @@ export async function deleteBusinessAd(adId) {
   return true;
 }
 
+// --- SITE OWNER IDENTIFICATION ---
+export const SITE_OWNER_EMAILS = [
+  'owner@thelearninggrove.org',
+  'admin@thelearninggrove.org',
+  'hostingsite.wanting320@passmail.net'
+];
+
+export function isSiteOwner(user) {
+  if (!user) return false;
+  const role = (user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'siteowner' || role === 'owner') return true;
+  if (user.isSiteOwner || user.isAdmin) return true;
+  if (user.assignedRoles && user.assignedRoles.some(r => ['admin', 'siteowner', 'owner'].includes((r || '').toLowerCase()))) return true;
+  if (user.email && SITE_OWNER_EMAILS.includes(user.email.toLowerCase())) return true;
+  return false;
+}
+
 // --- ADMIN & SITE OWNER ROLE MANAGEMENT ---
 export async function getAllUsers() {
   let dbUsers = [];

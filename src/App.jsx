@@ -37,6 +37,7 @@ import {
   deleteBusinessAd,
   getAllUsers,
   updateUserRolePermissions,
+  isSiteOwner,
   hashPassword
 } from './supabaseClient';
 
@@ -1238,12 +1239,14 @@ export default function App() {
                   </button>
                 )}
 
-                <button 
-                  onClick={() => { handleOpenRoleModal(); setIsMobileDrawerOpen(false); }}
-                  style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--oak-text, #8A5320)', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', borderRadius: '4px', cursor: 'pointer', fontWeight: '800', marginBottom: '0.4rem' }}
-                >
-                  👑 Assign Member Roles
-                </button>
+                {isSiteOwner(currentUser) && (
+                  <button 
+                    onClick={() => { handleOpenRoleModal(); setIsMobileDrawerOpen(false); }}
+                    style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--oak-text, #8A5320)', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', borderRadius: '4px', cursor: 'pointer', fontWeight: '800', marginBottom: '0.4rem' }}
+                  >
+                    👑 Assign Member Roles
+                  </button>
+                )}
 
                 <button 
                   onClick={() => {
