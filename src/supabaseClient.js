@@ -569,3 +569,40 @@ export async function deleteUserAccount(userId) {
   }
   return true;
 }
+
+// --- MODERATION DELETION FUNCTIONS ---
+export async function deleteFieldTrip(tripId) {
+  try {
+    const { error } = await supabase.from('fieldtrips').delete().eq('id', tripId);
+    if (error) console.warn("deleteFieldTrip DB warning:", error);
+  } catch (err) {
+    console.warn("deleteFieldTrip exception:", err);
+  }
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_fieldtrips') || '[]');
+  localStorage.setItem('grove_custom_fieldtrips', JSON.stringify(existingLocal.filter(t => t.id !== tripId)));
+  return true;
+}
+
+export async function deleteCommunityPost(postId) {
+  try {
+    const { error } = await supabase.from('communityposts').delete().eq('id', postId);
+    if (error) console.warn("deleteCommunityPost DB warning:", error);
+  } catch (err) {
+    console.warn("deleteCommunityPost exception:", err);
+  }
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_posts') || '[]');
+  localStorage.setItem('grove_custom_posts', JSON.stringify(existingLocal.filter(p => p.id !== postId)));
+  return true;
+}
+
+export async function deleteBusinessAd(adId) {
+  try {
+    const { error } = await supabase.from('businessads').delete().eq('id', adId);
+    if (error) console.warn("deleteBusinessAd DB warning:", error);
+  } catch (err) {
+    console.warn("deleteBusinessAd exception:", err);
+  }
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_ads') || '[]');
+  localStorage.setItem('grove_custom_ads', JSON.stringify(existingLocal.filter(a => a.id !== adId)));
+  return true;
+}

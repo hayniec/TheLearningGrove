@@ -32,6 +32,9 @@ import {
   approveDiscussionRequest,
   deleteSubUser,
   deleteUserAccount,
+  deleteFieldTrip,
+  deleteCommunityPost,
+  deleteBusinessAd,
   hashPassword
 } from './supabaseClient';
 
@@ -1105,7 +1108,23 @@ export default function App() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.name}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--oak-text, #8A5320)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{currentUser.role}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--ink-muted, #556056)', fontWeight: '700' }}>Role:</span>
+                      <select
+                        value={currentUser.role}
+                        onChange={(e) => {
+                          const updated = { ...currentUser, role: e.target.value };
+                          setCurrentUser(updated);
+                          localStorage.setItem('grove_user', JSON.stringify(updated));
+                        }}
+                        style={{ fontSize: '0.65rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', fontWeight: '800', border: '1px solid var(--oak-text, #8A5320)', borderRadius: '4px', padding: '1px 4px', cursor: 'pointer' }}
+                      >
+                        <option value="Parent">Parent</option>
+                        <option value="Moderator">Moderator</option>
+                        <option value="Admin">Site Owner (Admin)</option>
+                        <option value="Student">Student</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -2041,6 +2060,19 @@ export default function App() {
                     <span style={{ color: 'var(--color-accent-oak)' }}>Cost: {trip.cost.toUpperCase()}</span>
                     <span>Target: {trip.gradeRecommendation}</span>
                   </div>
+                  {isModeratorOrOwner(currentUser, trip.userId) && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFieldTrip(trip.id);
+                      }}
+                      style={{ marginTop: '0.75rem', width: '100%', background: 'var(--danger-wash, #FBE9E7)', color: 'var(--danger, #A0201A)', border: '1px solid var(--danger, #A0201A)', borderRadius: '6px', fontWeight: '700', padding: '6px' }}
+                    >
+                      🗑️ Remove Field Trip
+                    </button>
+                  )}
                 </article>
               ))}
               {filteredFieldTrips.length === 0 && (
@@ -2163,6 +2195,19 @@ export default function App() {
                         </a>
                       )}
                     </div>
+                    {isModeratorOrOwner(currentUser, ad.userId) && (
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteBusinessAd(ad.id);
+                        }}
+                        style={{ marginTop: '0.75rem', width: '100%', background: 'var(--danger-wash, #FBE9E7)', color: 'var(--danger, #A0201A)', border: '1px solid var(--danger, #A0201A)', borderRadius: '6px', fontWeight: '700', padding: '6px' }}
+                      >
+                        🗑️ Remove Business Listing
+                      </button>
+                    )}
                   </article>
                 ))}
                 {filteredBusinessAds.length === 0 && (
@@ -2293,10 +2338,26 @@ export default function App() {
                           color: communityCategory === cat.id ? 'var(--brand, #1E3F20)' : 'inherit',
                           background: communityCategory === cat.id ? 'var(--brand-wash, #E4EDE4)' : 'transparent',
                           borderRadius: '4px',
-                          padding: '0.4rem 0.5rem'
+                          padding: '0.4rem 0.5rem',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
                         }}
                       >
                         <span>{cat.label}</span>
+                        {isModeratorOrOwner(currentUser) && cat.id !== 'all' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(cat.id);
+                            }}
+                            title="Remove channel"
+                            style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '800', padding: '0 4px' }}
+                          >
+                            ×
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -2442,16 +2503,29 @@ export default function App() {
                             👍 {post.likes || 0} Helpful
                           </button>
                         </div>
-                        <button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await flagCommunityPost(post.id, "Flagged for moderator review");
-                            alert("Post flagged for Community Moderator review. Thank you!");
-                          }}
-                          style={{ background: 'none', border: 'none', color: 'var(--ink-muted, #556056)', cursor: 'pointer', fontSize: '0.75rem' }}
-                        >
-                          🚩 Flag Post
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await flagCommunityPost(post.id, "Flagged for moderator review");
+                              alert("Post flagged for Community Moderator review. Thank you!");
+                            }}
+                            style={{ background: 'none', border: 'none', color: 'var(--ink-muted, #556056)', cursor: 'pointer', fontSize: '0.75rem' }}
+                          >
+                            🚩 Flag
+                          </button>
+                          {isModeratorOrOwner(currentUser, post.userId) && (
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                handleDeletePost(post.id);
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '800' }}
+                            >
+                              🗑️ Remove
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </article>
                   ))}
