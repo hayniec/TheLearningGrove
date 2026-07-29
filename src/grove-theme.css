@@ -318,6 +318,10 @@ a:focus-visible,
 .form-control::placeholder,
 .search-input::placeholder { color: var(--ink-muted); opacity: 1; }
 
+.search-input-wrapper .search-input {
+  padding-left: 2.75rem;
+}
+
 .form-control[aria-invalid="true"],
 .field__input[aria-invalid="true"] {
   border-color: var(--danger);

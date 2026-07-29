@@ -194,6 +194,7 @@ export default function App() {
   const [requestForm, setRequestForm] = useState({ title: '', category: 'curriculum-qa', content: '', tags: '', email: '', reason: '' });
   const [communityCategory, setCommunityCategory] = useState('all');
   const [communitySearchTag, setCommunitySearchTag] = useState('');
+  const [communitySearchKeyword, setCommunitySearchKeyword] = useState('');
   const [activePostDetail, setActivePostDetail] = useState(null);
   const [replyInput, setReplyInput] = useState('');
   const [newPostForm, setNewPostForm] = useState({ title: '', category: 'curriculum-qa', content: '', tags: '' });
@@ -2021,7 +2022,13 @@ export default function App() {
                 <div>
                   <strong style={{ color: 'var(--ink, #1B201C)', fontSize: '0.9rem' }}>Family-Friendly & Actively Moderated Community</strong>
                   <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)' }}>
-                    All posts and replies are overseen by Community Moderators. Maintain civil, supportive, and respectful discourse.
+                    All posts and replies are overseen by Community Moderators. Commercial ads should be listed on the{' '}
+                    <a 
+                      onClick={() => setActiveTab('businesses')} 
+                      style={{ color: 'var(--brand, #1E3F20)', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer' }}
+                    >
+                      🏪 Business Board
+                    </a>.
                   </div>
                 </div>
               </div>
@@ -2038,12 +2045,30 @@ export default function App() {
               {/* CATEGORY & TAG SIDEBAR FILTERS */}
               <aside className="filter-sidebar">
                 <div className="filter-title">
-                  <strong>Discussion Channels</strong>
-                  <span className="filter-clear" onClick={() => { setCommunityCategory('all'); setCommunitySearchTag(''); }}>Clear</span>
+                  <strong>Filter Discussions</strong>
+                  <span className="filter-clear" onClick={() => { setCommunityCategory('all'); setCommunitySearchTag(''); setCommunitySearchKeyword(''); }}>Clear All</span>
                 </div>
 
-                {/* Official Categories */}
+                {/* Keyword Search Input */}
                 <div className="filter-group">
+                  <h4 className="filter-group-title">Search Discussions</h4>
+                  <div className="search-input-wrapper">
+                    <input 
+                      type="text" 
+                      className="search-input" 
+                      placeholder="Search questions, topics, author..." 
+                      value={communitySearchKeyword}
+                      onChange={(e) => setCommunitySearchKeyword(e.target.value)}
+                    />
+                    <svg className="search-icon" viewBox="0 0 24 24">
+                      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Official Channels */}
+                <div className="filter-group">
+                  <h4 className="filter-group-title">Discussion Channels</h4>
                   <ul className="option-list">
                     {[
                       { id: 'all', label: '🌐 All Discussions' },
@@ -2092,18 +2117,36 @@ export default function App() {
 
               {/* THREAD LIST */}
               <section className="business-grid" style={{ gridTemplateColumns: '1fr' }}>
-                {communitySearchTag && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--ink-muted, #556056)' }}>Active Tag Filter:</span>
-                    <span className="res-badge" style={{ background: 'var(--brand, #1E3F20)', color: '#ffffff', fontWeight: '700' }}>
-                      {communitySearchTag.startsWith('#') ? communitySearchTag : `#${communitySearchTag}`}
-                    </span>
-                    <button 
-                      onClick={() => setCommunitySearchTag('')}
-                      style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
-                    >
-                      Clear Filter
-                    </button>
+                {(communitySearchKeyword || communitySearchTag) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                    {communitySearchKeyword && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--ink-muted, #556056)' }}>Search Keyword:</span>
+                        <span className="res-badge" style={{ background: 'var(--brand, #1E3F20)', color: '#ffffff', fontWeight: '700' }}>
+                          "{communitySearchKeyword}"
+                        </span>
+                        <button 
+                          onClick={() => setCommunitySearchKeyword('')}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                    {communitySearchTag && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--ink-muted, #556056)' }}>Tag Filter:</span>
+                        <span className="res-badge" style={{ background: 'var(--brand, #1E3F20)', color: '#ffffff', fontWeight: '700' }}>
+                          {communitySearchTag.startsWith('#') ? communitySearchTag : `#${communitySearchTag}`}
+                        </span>
+                        <button 
+                          onClick={() => setCommunitySearchTag('')}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2112,7 +2155,13 @@ export default function App() {
                     const matchesCategory = communityCategory === 'all' || post.category === communityCategory;
                     const cleanTagQuery = communitySearchTag.toLowerCase().replace('#', '').trim();
                     const matchesTag = !cleanTagQuery || (post.tags && post.tags.some(t => t.toLowerCase().includes(cleanTagQuery)));
-                    return matchesCategory && matchesTag;
+                    const cleanKeyword = communitySearchKeyword.toLowerCase().trim();
+                    const matchesKeyword = !cleanKeyword ||
+                      post.title.toLowerCase().includes(cleanKeyword) ||
+                      post.content.toLowerCase().includes(cleanKeyword) ||
+                      post.author.toLowerCase().includes(cleanKeyword) ||
+                      (post.tags && post.tags.some(t => t.toLowerCase().includes(cleanKeyword)));
+                    return matchesCategory && matchesTag && matchesKeyword;
                   })
                   .map(post => (
                     <article 
@@ -3333,7 +3382,13 @@ export default function App() {
               <strong>Community Flagging:</strong> Any user can click 🚩 <em>Flag Post</em> on any thread to immediately alert moderators for review.
             </li>
             <li>
-              <strong>No Unsolicited Commercial Spam:</strong> Commercial promotions, paid tutoring services, or business ads should be posted on the 🏪 <strong>Business Board</strong>, not in discussion channels.
+              <strong>No Unsolicited Commercial Spam:</strong> Commercial promotions, paid tutoring services, or business ads should be posted on the{' '}
+              <a 
+                onClick={() => { setShowRulesModal(false); setActiveTab('businesses'); }}
+                style={{ color: 'var(--brand, #1E3F20)', fontWeight: '800', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                🏪 Business Board
+              </a>, not in discussion channels.
             </li>
           </ol>
         </div>
