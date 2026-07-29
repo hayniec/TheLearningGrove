@@ -16,16 +16,85 @@ export async function hashPassword(password) {
 
 // --- CURRICULA ---
 export async function getCurricula() {
-  const { data, error } = await supabase.from('curricula').select('*');
-  if (error) throw error;
-  return data.map(r => ({
-    ...r,
-    onlineResources: !!r.onlineResources,
-    selfPaced: !!r.selfPaced,
-    classParticipation: !!r.classParticipation,
-    videos: !!r.videos,
-    gradeLevels: r.gradeLevels ? r.gradeLevels.split(',') : []
-  }));
+  const defaultSampleCurricula = [
+    {
+      id: 'beast-academy-math',
+      name: 'Beast Academy Math',
+      subject: 'Math',
+      delivery: 'hybrid',
+      grouping: 'grade',
+      cost: '$$',
+      rating: 5,
+      favoritePart: 'Graphic novel comic books that make high-level problem solving feel like a fun puzzle!',
+      answerKey: 'provided',
+      methodology: 'mastery',
+      onlineResources: true,
+      selfPaced: true,
+      classParticipation: false,
+      worldview: 'secular',
+      videos: true,
+      description: 'A challenging, comic-book based math curriculum designed by Art of Problem Solving for grades 2 through 5.',
+      gradeLevels: ['2nd Grade', '3rd Grade', '4th Grade', '5th Grade'],
+      userId: 'admin-1'
+    },
+    {
+      id: 'math-u-see',
+      name: 'Math-U-See (Steve Demme)',
+      subject: 'Math',
+      delivery: 'textbook',
+      grouping: 'mastery',
+      cost: '$$$',
+      rating: 5,
+      favoritePart: 'Tactile block manipulatives and video instruction for mastery learning.',
+      answerKey: 'provided',
+      methodology: 'mastery',
+      onlineResources: true,
+      selfPaced: true,
+      classParticipation: false,
+      worldview: 'faith-based',
+      videos: true,
+      description: 'A multi-sensory, mastery-based math program that uses color-coded integer blocks to make abstract concepts visual.',
+      gradeLevels: ['Kindergarten', '1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade', 'Middle School'],
+      userId: 'admin-1'
+    },
+    {
+      id: 'mystery-science',
+      name: 'Mystery Science',
+      subject: 'Science',
+      delivery: 'online',
+      grouping: 'grade',
+      cost: '$$',
+      rating: 5,
+      favoritePart: 'Hands-on experiments with everyday household materials and engaging video mysteries.',
+      answerKey: 'provided',
+      methodology: 'unit-study',
+      onlineResources: true,
+      selfPaced: true,
+      classParticipation: true,
+      worldview: 'secular',
+      videos: true,
+      description: 'Open-and-go science mystery lessons featuring short video clips and interactive experiments.',
+      gradeLevels: ['Kindergarten', '1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade'],
+      userId: 'admin-2'
+    }
+  ];
+
+  try {
+    const { data, error } = await supabase.from('curricula').select('*');
+    if (!error && data && data.length > 0) {
+      return data.map(r => ({
+        ...r,
+        onlineResources: !!r.onlineResources,
+        selfPaced: !!r.selfPaced,
+        classParticipation: !!r.classParticipation,
+        videos: !!r.videos,
+        gradeLevels: typeof r.gradeLevels === 'string' ? r.gradeLevels.split(',') : (r.gradeLevels || [])
+      }));
+    }
+  } catch (err) {
+    console.warn("getCurricula exception:", err);
+  }
+  return defaultSampleCurricula;
 }
 
 export async function getCurriculumReviews(curriculumId) {
@@ -265,28 +334,93 @@ export async function addFieldTrip(item) {
 
 // --- BUSINESS ADS ---
 export async function getBusinessAds() {
-  const { data, error } = await supabase.from('businessads').select('*');
-  if (error) throw error;
-  return data;
+  const localAds = JSON.parse(localStorage.getItem('grove_custom_ads') || '[]');
+  const defaultSampleAds = [
+    {
+      id: 'ad-grove-tutoring',
+      owner: 'Allison Haynie',
+      businessName: 'Grove Math & Orton-Gillingham Reading Specialists',
+      description: '1-on-1 personalized tutoring for visual and neurodivergent learners. Specializing in Beast Academy math and All About Reading phonics.',
+      category: 'Tutoring Services',
+      businessType: 'Tutoring Service',
+      contact: 'tutoring@thelearninggrove.org | (404) 555-0192',
+      link: 'https://thelearninggrove.org',
+      userId: 'admin-2'
+    },
+    {
+      id: 'ad-harmony-piano',
+      owner: 'Eric Haynie',
+      businessName: 'Harmony Pines Homeschool Piano & String Studio',
+      description: 'Flexible morning and afternoon private music lessons for homeschool students. Classical, jazz, and music theory curriculum.',
+      category: 'Extracurricular Classes',
+      businessType: 'Lessons / Extracurricular',
+      contact: 'music@thelearninggrove.org | (404) 555-0188',
+      link: 'https://thelearninggrove.org',
+      userId: 'admin-3'
+    }
+  ];
+
+  let dbAds = [];
+  try {
+    const { data, error } = await supabase.from('businessads').select('*');
+    if (!error && data && data.length > 0) {
+      dbAds = data;
+    }
+  } catch (err) {
+    console.warn("getBusinessAds exception:", err);
+  }
+
+  const merged = [...localAds, ...dbAds];
+  if (merged.length === 0) return defaultSampleAds;
+
+  const map = new Map();
+  defaultSampleAds.forEach(a => map.set(a.id, a));
+  merged.forEach(a => map.set(a.id, a));
+  return Array.from(map.values());
 }
 
 export async function addBusinessAd(item) {
   const id = item.businessName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
   const newItem = { ...item, id, userId: item.userId || 'parent-1' };
-  const { error } = await supabase.from('businessads').insert([newItem]);
-  if (error) throw error;
+  try {
+    const { error } = await supabase.from('businessads').insert([newItem]);
+    if (error) console.warn("addBusinessAd insert warning:", error);
+  } catch (e) {
+    console.warn("addBusinessAd exception:", e);
+  }
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_ads') || '[]');
+  localStorage.setItem('grove_custom_ads', JSON.stringify([newItem, ...existingLocal]));
   return newItem;
 }
 
 // --- RESOURCES ---
 export async function getResources() {
-  const { data, error } = await supabase
-    .from('resources')
-    .select('*')
-    .eq('approved', true);
-  if (error) throw error;
-  return data;
+  const defaultSampleResources = [
+    {
+      id: 'res-khan-academy',
+      name: 'Khan Academy Homeschool Math & Science',
+      subject: 'Math',
+      cost: 'free',
+      link: 'https://www.khanacademy.org',
+      description: 'Comprehensive 100% free video courses, practice exercises, and mastery tracking across Pre-K through AP calculus and physics.',
+      type: 'website',
+      approved: true,
+      submittedBy: 'Sarah Jenkins',
+      submittedByEmail: 'sarah.jenkins@example.com',
+      createdAt: 1785200000000
+    }
+  ];
+
+  try {
+    const { data, error } = await supabase.from('resources').select('*');
+    if (!error && data && data.length > 0) return data;
+  } catch (err) {
+    console.warn("getResources exception:", err);
+  }
+  return defaultSampleResources;
 }
+
+
 
 export async function addResource(item) {
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);

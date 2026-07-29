@@ -328,7 +328,7 @@ export default function App() {
   // Fetch Data from Server
   const fetchData = async () => {
     try {
-      const [currRes, tripRes, adRes, resRes, postRes] = await Promise.all([
+      const [currRes, tripRes, adRes, resRes, postRes] = await Promise.allSettled([
         getCurricula(),
         getFieldTrips(),
         getBusinessAds(),
@@ -336,17 +336,23 @@ export default function App() {
         getCommunityPosts()
       ]);
 
-      setCurricula(currRes);
-      setFieldTrips(tripRes);
-      setBusinessAds(adRes);
-      setResources(resRes);
-      setPosts(postRes);
+      const currData = currRes.status === 'fulfilled' ? currRes.value : [];
+      const tripData = tripRes.status === 'fulfilled' ? tripRes.value : [];
+      const adData = adRes.status === 'fulfilled' ? adRes.value : [];
+      const resData = resRes.status === 'fulfilled' ? resRes.value : [];
+      const postData = postRes.status === 'fulfilled' ? postRes.value : [];
+
+      if (currData && currData.length > 0) setCurricula(currData);
+      if (tripData && tripData.length > 0) setFieldTrips(tripData);
+      if (adData && adData.length > 0) setBusinessAds(adData);
+      if (resData && resData.length > 0) setResources(resData);
+      if (postData && postData.length > 0) setPosts(postData);
 
       setStats({
-        curricula: currRes.length,
-        trips: tripRes.length,
-        ads: adRes.length,
-        resources: resRes.length
+        curricula: currData.length,
+        trips: tripData.length,
+        ads: adData.length,
+        resources: resData.length
       });
     } catch (err) {
       console.error("Failed to load backend DB data: ", err);
@@ -1084,8 +1090,12 @@ export default function App() {
         </button>
 
         <div className="mobile-brand-title" onClick={() => { setActiveTab('explorer'); setIsMobileDrawerOpen(false); }}>
-          <svg className="brand-logo" viewBox="0 0 24 24" width="24" height="24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          <svg className="brand-logo" viewBox="0 0 48 48" width="36" height="36" style={{ minWidth: '32px', minHeight: '32px' }}>
+            <circle cx="24" cy="24" r="22" fill="#2E5A31" fillOpacity="0.25" stroke="#B77C43" strokeWidth="1.5" />
+            <path d="M24 7C18.5 7 14 10.5 14 15C11.8 15 9.5 17.2 9.5 19.5C9.5 22.8 12.2 25 15 25C15 27.8 17.2 30 20.5 30H27.5C30.8 30 33 27.8 33 25C35.8 25 38.5 22.8 38.5 19.5C38.5 17.2 36.2 15 34 15C34 10.5 29.5 7 24 7Z" fill="#3D7A40" />
+            <path d="M24 9.5C19.8 9.5 16.2 12.2 16.2 15.8C14.4 15.8 12.8 17.5 12.8 19.5C12.8 22.2 15 23.8 17.5 23.8C17.5 26.2 19.5 28 22.2 28H25.8C28.5 28 30.5 26.2 30.5 23.8C33 23.8 35.2 22.2 35.2 19.5C35.2 17.5 33.6 15.8 31.8 15.8C31.8 12.2 28.2 9.5 24 9.5Z" fill="#589B5B" />
+            <path d="M21.5 27V38C21.5 39 19.5 40 17 41M26.5 27V38C26.5 39 28.5 40 31 41M24 25V39" stroke="#B77C43" strokeWidth="2.8" strokeLinecap="round" />
+            <circle cx="24" cy="14" r="2.5" fill="#F3BF64" />
           </svg>
           <span>The Learning Grove</span>
         </div>
@@ -1121,8 +1131,12 @@ export default function App() {
         <div>
           <div className="brand-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <svg className="brand-logo" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              <svg className="brand-logo" viewBox="0 0 48 48" width="42" height="42" style={{ minWidth: '40px', minHeight: '40px' }}>
+                <circle cx="24" cy="24" r="22" fill="#2E5A31" fillOpacity="0.25" stroke="#B77C43" strokeWidth="1.5" />
+                <path d="M24 7C18.5 7 14 10.5 14 15C11.8 15 9.5 17.2 9.5 19.5C9.5 22.8 12.2 25 15 25C15 27.8 17.2 30 20.5 30H27.5C30.8 30 33 27.8 33 25C35.8 25 38.5 22.8 38.5 19.5C38.5 17.2 36.2 15 34 15C34 10.5 29.5 7 24 7Z" fill="#3D7A40" />
+                <path d="M24 9.5C19.8 9.5 16.2 12.2 16.2 15.8C14.4 15.8 12.8 17.5 12.8 19.5C12.8 22.2 15 23.8 17.5 23.8C17.5 26.2 19.5 28 22.2 28H25.8C28.5 28 30.5 26.2 30.5 23.8C33 23.8 35.2 22.2 35.2 19.5C35.2 17.5 33.6 15.8 31.8 15.8C31.8 12.2 28.2 9.5 24 9.5Z" fill="#589B5B" />
+                <path d="M21.5 27V38C21.5 39 19.5 40 17 41M26.5 27V38C26.5 39 28.5 40 31 41M24 25V39" stroke="#B77C43" strokeWidth="2.8" strokeLinecap="round" />
+                <circle cx="24" cy="14" r="2.5" fill="#F3BF64" />
               </svg>
               <span className="brand-name">The Learning Grove</span>
             </div>
@@ -2325,9 +2339,9 @@ export default function App() {
             </header>
 
             {requestSuccess && (
-              <Notice kind="success" onClose={() => setRequestSuccess(null)} style={{ marginBottom: '1rem' }}>
-                {requestSuccess}
-              </Notice>
+              <div style={{ marginBottom: '1rem' }} onClick={() => setRequestSuccess(null)}>
+                <Notice kind="success">{requestSuccess}</Notice>
+              </div>
             )}
 
             {/* COMMUNITY GUIDELINES & MODERATION BANNER */}
