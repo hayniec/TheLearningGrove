@@ -250,8 +250,8 @@ export default function App() {
     classParticipation: false, worldview: 'secular', videos: false, description: ''
   });
   const [newTrip, setNewTrip] = useState({
-    name: '', subject: 'Science', cost: '$$', rating: 5, description: '',
-    location: '', gradeRecommendation: 'All Grades',
+    name: '', subject: 'Science', cost: 'Free Admission', rating: 5, description: '',
+    location: '', gradeRecommendation: 'All Ages / Family Outing',
     city: '', state: '', zip: '', websiteUrl: ''
   });
   const [newAd, setNewAd] = useState({
@@ -622,8 +622,8 @@ export default function App() {
       setShowTripModal(false);
       setFormError(null);
       setNewTrip({
-        name: '', subject: 'Science', cost: '$$', rating: 5, description: '',
-        location: '', gradeRecommendation: 'All Grades',
+        name: '', subject: 'Science', cost: 'Free Admission', rating: 5, description: '',
+        location: '', gradeRecommendation: 'All Ages / Family Outing',
         city: '', state: '', zip: '', websiteUrl: ''
       });
       fetchData();
@@ -2799,10 +2799,11 @@ export default function App() {
                 value={newTrip.cost}
                 onChange={(e) => setNewTrip(prev => ({...prev, cost: e.target.value}))}
               >
-                <option value="free">Free Admission</option>
-                <option value="$">$ (Low Cost)</option>
-                <option value="$$">$$ (Medium Cost)</option>
-                <option value="$$$">$$$ (High Cost)</option>
+                <option value="Free Admission">Free Admission</option>
+                <option value="Free (Donation Encouraged)">Free (Donation Encouraged)</option>
+                <option value="$">$ (Under $10)</option>
+                <option value="$$">$$ ($10 - $20)</option>
+                <option value="$$$">$$$ ($20+)</option>
               </select>
             </Field>
           </div>
@@ -2818,12 +2819,18 @@ export default function App() {
             </Field>
 
             <Field id="trip-grade" label="Recommended Ages/Grades" required>
-              <input
-                type="text"
-                placeholder="e.g. Elementary, Middle School"
+              <select
                 value={newTrip.gradeRecommendation}
                 onChange={(e) => setNewTrip(prev => ({...prev, gradeRecommendation: e.target.value}))}
-              />
+              >
+                <option value="All Ages / Family Outing">All Ages / Family Outing</option>
+                <option value="Pre-K & Kindergarten (Ages 3-5)">Pre-K & Kindergarten (Ages 3-5)</option>
+                <option value="Early Elementary (Grades K-2 / Ages 5-8)">Early Elementary (Grades K-2 / Ages 5-8)</option>
+                <option value="Upper Elementary (Grades 3-5 / Ages 8-11)">Upper Elementary (Grades 3-5 / Ages 8-11)</option>
+                <option value="Middle School (Grades 6-8 / Ages 11-14)">Middle School (Grades 6-8 / Ages 11-14)</option>
+                <option value="High School (Grades 9-12 / Ages 14-18)">High School (Grades 9-12 / Ages 14-18)</option>
+                <option value="Teens & Adults (13+)">Teens & Adults (13+)</option>
+              </select>
             </Field>
           </div>
 

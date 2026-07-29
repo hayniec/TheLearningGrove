@@ -322,6 +322,17 @@ a:focus-visible,
   padding-left: 2.75rem;
 }
 
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .search-input:focus,
+[data-theme="dark"] .field__input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus {
+  background-color: var(--surface-card, #1D231E) !important;
+  color: var(--ink, #F3F1EC) !important;
+  border-color: var(--brand, #6D7A6D) !important;
+}
+
 .form-control[aria-invalid="true"],
 .field__input[aria-invalid="true"] {
   border-color: var(--danger);

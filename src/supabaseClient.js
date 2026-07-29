@@ -156,9 +156,19 @@ export async function getFieldTrips() {
 
 export async function addFieldTrip(item) {
   const id = item.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
-  const newItem = { ...item, id, userId: item.userId || 'parent-1' };
+  const newItem = { 
+    ...item, 
+    id, 
+    cost: item.cost ? item.cost.slice(0, 30) : 'Free',
+    userId: item.userId || 'parent-1' 
+  };
   const { error } = await supabase.from('fieldtrips').insert([newItem]);
-  if (error) throw error;
+  if (error) {
+    console.warn("addFieldTrip first insert warning, attempting short cost fallback:", error);
+    const fallbackItem = { ...newItem, cost: (item.cost || 'Free').slice(0, 10) };
+    const { error: err2 } = await supabase.from('fieldtrips').insert([fallbackItem]);
+    if (err2) throw err2;
+  }
   return newItem;
 }
 
