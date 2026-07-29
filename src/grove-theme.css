@@ -315,9 +315,6 @@ a:focus-visible,
   border-radius: 8px;
   box-shadow: none;
 }
-.search-input {
-  padding-left: 2.5rem;
-}
 .form-control::placeholder,
 .search-input::placeholder { color: var(--ink-muted); opacity: 1; }
 
@@ -628,3 +625,98 @@ body.modal-open { overflow: hidden; }   /* stop background scroll */
 .curriculum-card, .resource-card, .post-card { min-height: auto; height: auto; }
 
 img, svg, video { max-width: 100%; height: auto; }
+
+/* --------------------------------------------------------------------------
+   16. MOBILE & TABLET TOUCH & PWA ACCESSIBILITY (WCAG 2.2 Level AA / PWA)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  /* Prevent iOS Safari automatic zoom on focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* 44px x 44px WCAG 2.2 Touch Target Compliance */
+  button,
+  .btn,
+  select,
+  .nav-link,
+  .chip {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Responsive Dialogs & Modals on Tablets & Phones */
+  .grove-dialog {
+    width: 94vw !important;
+    max-width: 580px !important;
+    margin: 1rem auto !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    border-radius: 12px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Fluid 1-Column Responsive Grids for Cards and Forms */
+  .dashboard-grid,
+  .explorer-container,
+  .trips-container,
+  .business-grid,
+  .resources-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Responsive Map & Sidebar Filters */
+  .filter-sidebar {
+    position: static !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* ==========================================================================
+   THEME TOGGLE — paste into src/main.jsx above ReactDOM.createRoot()
+   --------------------------------------------------------------------------
+   const saved = localStorage.getItem('grove-theme') || 'system';
+   document.documentElement.setAttribute('data-theme', saved);
+
+   And use this component for the control:
+
+   function ThemeToggle() {
+     const [theme, setTheme] = React.useState(
+       () => localStorage.getItem('grove-theme') || 'system'
+     );
+     React.useEffect(() => {
+       document.documentElement.setAttribute('data-theme', theme);
+       localStorage.setItem('grove-theme', theme);
+     }, [theme]);
+
+     return (
+       <fieldset className="field-group">
+         <legend>Appearance</legend>
+         {['light', 'dark', 'system'].map(opt => (
+           <label className="option-item" key={opt}>
+             <input
+               type="radio"
+               name="theme"
+               value={opt}
+               checked={theme === opt}
+               onChange={() => setTheme(opt)}
+             />
+             <span>{opt === 'system' ? 'Match my device' : opt[0].toUpperCase() + opt.slice(1)}</span>
+           </label>
+         ))}
+       </fieldset>
+     );
+   }
+
+   A radio group beats a moon/sun icon here: it is self-describing, it exposes
+   the third "system" state, and non-technical users do not have to guess what
+   the icon means.
+   ========================================================================== */
