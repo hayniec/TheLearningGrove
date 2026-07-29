@@ -262,23 +262,39 @@ export function getFamilyHeadId(user) {
 
 export async function getSubUsers(parentUserOrId) {
   let targetId = typeof parentUserOrId === 'object' ? getFamilyHeadId(parentUserOrId) : parentUserOrId;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('users')
     .select('*')
-    .or(`parentId.eq.${targetId},parentid.eq.${targetId}`)
+    .eq('parentId', targetId)
     .eq('role', 'Student');
-  if (error) throw error;
+
+  if (error) {
+    const res2 = await supabase
+      .from('users')
+      .select('*')
+      .eq('parentid', targetId)
+      .eq('role', 'Student');
+    data = res2.data;
+  }
   return data || [];
 }
 
 export async function getCoParents(parentUser) {
   const familyHeadId = getFamilyHeadId(parentUser);
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('users')
     .select('*')
-    .or(`id.eq.${familyHeadId},parentId.eq.${familyHeadId},parentid.eq.${familyHeadId}`)
+    .or(`id.eq.${familyHeadId},parentId.eq.${familyHeadId}`)
     .eq('role', 'Parent');
-  if (error) throw error;
+
+  if (error) {
+    const res2 = await supabase
+      .from('users')
+      .select('*')
+      .or(`id.eq.${familyHeadId},parentid.eq.${familyHeadId}`)
+      .eq('role', 'Parent');
+    data = res2.data;
+  }
   return data || [];
 }
 
@@ -295,35 +311,45 @@ export async function linkCoParent(currentParentUser, coParentEmail) {
     throw new Error("You are already the active parent of this household.");
   }
 
-  // Update co-parent record to share familyHeadId
-  const { data, error } = await supabase
+  // Update co-parent record trying parentId first, falling back to parentid
+  let res = await supabase
     .from('users')
-    .update({ parentId: familyHeadId, parentid: familyHeadId })
+    .update({ parentId: familyHeadId })
     .eq('id', coParent.id)
     .select()
     .maybeSingle();
 
-  if (error) throw error;
-  return data || { ...coParent, parentId: familyHeadId, parentid: familyHeadId };
+  if (res.error) {
+    console.warn("linkCoParent parentId update fallback to parentid:", res.error);
+    res = await supabase
+      .from('users')
+      .update({ parentid: familyHeadId })
+      .eq('id', coParent.id)
+      .select()
+      .maybeSingle();
+  }
+
+  if (res.error) throw res.error;
+  return res.data || { ...coParent, parentId: familyHeadId, parentid: familyHeadId };
 }
 
 export async function createSubUser(parentUserOrId, subUser) {
   const parentId = typeof parentUserOrId === 'object' ? getFamilyHeadId(parentUserOrId) : parentUserOrId;
   const id = 'user-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString();
   const hashedPassword = await hashPassword(subUser.password);
+  
   const newUser = {
     id,
     email: subUser.email,
     password: hashedPassword,
     name: subUser.name,
     role: subUser.role || 'Student',
-    parentId: parentId,
-    parentid: parentId
+    parentId: parentId
   };
   
   let { error } = await supabase.from('users').insert([newUser]);
   if (error) {
-    console.warn("createSubUser dual-key insert warning, attempting fallback:", error);
+    console.warn("createSubUser parentId insert fallback to parentid:", error);
     const fallbackUser = {
       id,
       email: subUser.email,
@@ -333,18 +359,7 @@ export async function createSubUser(parentUserOrId, subUser) {
       parentid: parentId
     };
     const res2 = await supabase.from('users').insert([fallbackUser]);
-    if (res2.error) {
-      const fallbackUser2 = {
-        id,
-        email: subUser.email,
-        password: hashedPassword,
-        name: subUser.name,
-        role: subUser.role || 'Student',
-        parentId: parentId
-      };
-      const res3 = await supabase.from('users').insert([fallbackUser2]);
-      if (res3.error) throw res3.error;
-    }
+    if (res2.error) throw res2.error;
   }
   return newUser;
 }
