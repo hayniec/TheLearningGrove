@@ -1108,23 +1108,44 @@ export default function App() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                      <span style={{ fontSize: '0.65rem', color: 'var(--ink-muted, #556056)', fontWeight: '700' }}>Role:</span>
-                      <select
-                        value={currentUser.role}
-                        onChange={(e) => {
-                          const updated = { ...currentUser, role: e.target.value };
-                          setCurrentUser(updated);
-                          localStorage.setItem('grove_user', JSON.stringify(updated));
-                        }}
-                        style={{ fontSize: '0.65rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', fontWeight: '800', border: '1px solid var(--oak-text, #8A5320)', borderRadius: '4px', padding: '1px 4px', cursor: 'pointer' }}
-                      >
-                        <option value="Parent">Parent</option>
-                        <option value="Moderator">Moderator</option>
-                        <option value="Admin">Site Owner (Admin)</option>
-                        <option value="Student">Student</option>
-                      </select>
-                    </div>
+                    
+                    {/* ONLY display role selector dropdown if Site Owner assigned multiple roles */}
+                    {(currentUser.assignedRoles && currentUser.assignedRoles.length > 1) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', maxWidth: '100%' }}>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--ink-muted, #556056)', fontWeight: '700' }}>Role:</span>
+                        <select
+                          value={currentUser.role}
+                          onChange={(e) => {
+                            const updated = { ...currentUser, role: e.target.value };
+                            setCurrentUser(updated);
+                            localStorage.setItem('grove_user', JSON.stringify(updated));
+                          }}
+                          style={{
+                            fontSize: '0.65rem',
+                            background: 'var(--oak-wash, #F6EADC)',
+                            color: 'var(--oak-text, #8A5320)',
+                            fontWeight: '800',
+                            border: '1px solid var(--oak-text, #8A5320)',
+                            borderRadius: '4px',
+                            padding: '1px 4px',
+                            cursor: 'pointer',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {currentUser.assignedRoles.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--oak-text, #8A5320)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '2px' }}>
+                        {currentUser.role}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1133,6 +1154,7 @@ export default function App() {
                     onClick={() => { setShowFamilyModal(true); setIsMobileDrawerOpen(false); }}
                     style={{ 
                       width: '100%', 
+                      boxSizing: 'border-box',
                       fontSize: '0.75rem', 
                       padding: '5px 0', 
                       border: 'none', 
@@ -1153,10 +1175,10 @@ export default function App() {
                 )}
 
                 {currentUser.role === 'Parent' && subUsers.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
                     <label style={{ fontSize: '0.65rem', color: 'var(--ink-muted, #556056)', fontWeight: '700' }}>Switch Profile:</label>
                     <select 
-                      style={{ fontSize: '0.75rem', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--ink, #1B201C)', fontWeight: '600', width: '100%' }}
+                      style={{ fontSize: '0.75rem', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--ink, #1B201C)', fontWeight: '600', width: '100%', boxSizing: 'border-box', maxWidth: '100%' }}
                       value={currentUser.id}
                       onChange={(e) => {
                         const val = e.target.value;
