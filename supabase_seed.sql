@@ -136,12 +136,15 @@ CREATE TABLE resources (
 );
 
 -- Step 3: Reseed USERS
+-- Password hash for 'rar0117' (SHA-256): 
+-- b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3
 INSERT INTO users (id, email, password, name, role, "assignedRoles", "parentId") VALUES
-('admin-1', 'hostingsite.wanting320@passmail.net', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Site Owner', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
-('admin-2', 'allison.haynie35@gmail.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Allison Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
-('admin-3', 'erick.haynie@gmail.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Eric Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
-('parent-1', 'sarah.jenkins@example.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Sarah Jenkins', 'Parent', ARRAY['Parent'], NULL),
-('parent-2', 'david.miller@example.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'David Miller', 'Parent', ARRAY['Parent'], NULL);
+('admin-1', 'hostingsite.wanting320@passmail.net', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Site Owner', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
+('admin-2', 'allison.haynie35@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Allison Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
+('admin-3', 'eric.haynie@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Eric Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
+('admin-4', 'eric.haynie@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Eric Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
+('parent-1', 'sarah.jenkins@example.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Sarah Jenkins', 'Parent', ARRAY['Parent'], NULL),
+('parent-2', 'david.miller@example.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'David Miller', 'Parent', ARRAY['Parent'], NULL);
 
 -- Step 4: Reseed CURRICULA
 INSERT INTO curricula (
@@ -452,4 +455,4 @@ INSERT INTO resources (
   1785210000000
 );
 
--- ALL TABLES DROPPED, RECREATED & RESEEDED SUCCESSFULLY!
+-- ALL TABLES RESEEDED WITH PASSWORD rar0117 SUCCESSFULLY!

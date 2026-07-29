@@ -154,6 +154,8 @@ export const SITE_OWNER_EMAILS = [
   'hostingsite.wanting320@passmail.net',
   'allison.haynie35@gmail.com',
   'allison.haynie35@gmail',
+  'eric.haynie@gmail.com',
+  'eric.haynie@gmail',
   'erick.haynie@gmail.com',
   'erick.haynie@gmail'
 ];
