@@ -22,6 +22,11 @@ import {
   getPendingResources,
   approveResource,
   rejectResource,
+  getCommunityPosts,
+  createCommunityPost,
+  addCommunityReply,
+  likeCommunityPost,
+  flagCommunityPost,
   hashPassword
 } from './supabaseClient';
 
@@ -130,11 +135,61 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('explorer');
 
   // Community Forum State
-  const [posts, setPosts] = useState([]);
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [newPost, setNewPost] = useState({ author: '', title: '', content: '', category: 'General' });
-  const [postSearchQuery, setPostSearchQuery] = useState('');
-  const [selectedPostCategory, setSelectedPostCategory] = useState('All');
+  const initialSamplePosts = [
+    {
+      id: 'post-1',
+      author: 'Sarah Jenkins',
+      role: 'PARENT',
+      title: "What is your favorite 4th-grade math curriculum for visual learners?",
+      category: 'curriculum-qa',
+      categoryLabel: '📚 Curriculum Q&A',
+      content: "My son struggles with plain textbook worksheets and benefits from visual manipulatives and short video lessons. We've looked into Beast Academy and Math-U-See. What have you found works best for visual 4th graders?",
+      tags: ['#Math', '#4thGrade', '#VisualLearners', '#BeastAcademy'],
+      likes: 12,
+      replies: [
+        { id: 'rep-1', author: 'Eric H', content: "Beast Academy is fantastic for visual problem-solving! The comic guide books keep kids engaged, and the online practice provides instant feedback.", created_at: '2 hours ago' },
+        { id: 'rep-2', author: 'Allison H', content: "Seconding Beast Academy! We also used Math-U-See blocks for tactile math concepts.", created_at: '1 hour ago' }
+      ],
+      created_at: '2026-07-28T14:00:00Z'
+    },
+    {
+      id: 'post-2',
+      author: 'David Miller',
+      role: 'PARENT',
+      title: "North Atlanta Science Museum Group Field Trip — Discount Rates Available!",
+      category: 'coops-trips',
+      categoryLabel: '🌲 Co-ops & Field Trips',
+      content: "We are organizing a group visit to the Science Museum for 15+ homeschool families on June 15th. Group admission is $8/student (normally $18). Let us know if your family would like to join!",
+      tags: ['#FieldTrips', '#Science', '#Atlanta', '#CoOp'],
+      likes: 18,
+      replies: [
+        { id: 'rep-3', author: 'Sarah Jenkins', content: "Count us in! I have two 4th graders.", created_at: '3 hours ago' }
+      ],
+      created_at: '2026-07-27T10:00:00Z'
+    },
+    {
+      id: 'post-3',
+      author: 'Allison H',
+      role: 'PARENT',
+      title: "High School College Prep: How do you format homeschool transcripts?",
+      category: 'prep',
+      categoryLabel: '🎓 High School & College Prep',
+      content: "As my daughter enters 9th grade, I want to make sure our course descriptions and GPA tracking align with college admissions requirements. What tools or templates do you use?",
+      tags: ['#HighSchool', '#CollegePrep', '#Transcripts', '#9thGrade'],
+      likes: 9,
+      replies: [],
+      created_at: '2026-07-26T16:30:00Z'
+    }
+  ];
+
+  const [posts, setPosts] = useState(initialSamplePosts);
+  const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [communityCategory, setCommunityCategory] = useState('all');
+  const [communitySearchTag, setCommunitySearchTag] = useState('');
+  const [activePostDetail, setActivePostDetail] = useState(null);
+  const [replyInput, setReplyInput] = useState('');
+  const [newPostForm, setNewPostForm] = useState({ title: '', category: 'curriculum-qa', content: '', tags: '' });
 
   // Business Board State
   const [adSearchQuery, setAdSearchQuery] = useState('');
@@ -704,6 +759,70 @@ export default function App() {
     } catch (err) {
       console.error(err);
       setCoParentError(err.message || "Failed to link co-parent.");
+    }
+  };
+
+  const handleNewPostSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPostForm.title.trim() || !newPostForm.content.trim()) {
+      setFormError("Please fill in both a title and content.");
+      return;
+    }
+
+    const tagArray = newPostForm.tags
+      ? newPostForm.tags.split(',').map(t => t.trim()).filter(Boolean)
+      : [];
+
+    const categoryLabels = {
+      'curriculum-qa': '📚 Curriculum Q&A',
+      'coops-trips': '🌲 Co-ops & Field Trips',
+      'prep': '🎓 High School & College Prep',
+      'swap': '🎒 Buy / Sell / Swap',
+      'tips': '💡 Teaching Tips & Advice',
+      'lounge': '💬 General Lounge'
+    };
+
+    const postPayload = {
+      author: currentUser ? currentUser.name : 'Anonymous Parent',
+      role: currentUser ? currentUser.role : 'Parent',
+      title: newPostForm.title,
+      category: newPostForm.category,
+      categoryLabel: categoryLabels[newPostForm.category] || 'General',
+      content: newPostForm.content,
+      tags: tagArray
+    };
+
+    try {
+      const created = await createCommunityPost(postPayload);
+      setPosts(prev => [created, ...prev]);
+      setNewPostForm({ title: '', category: 'curriculum-qa', content: '', tags: '' });
+      setShowNewPostModal(false);
+      setFormError(null);
+    } catch (err) {
+      console.error(err);
+      setFormError("Failed to create post.");
+    }
+  };
+
+  const handleNewReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyInput.trim() || !activePostDetail) return;
+
+    const replyPayload = {
+      author: currentUser ? currentUser.name : 'Parent Member',
+      content: replyInput
+    };
+
+    try {
+      const newReply = await addCommunityReply(activePostDetail.id, replyPayload);
+      const updatedReplies = [...(activePostDetail.replies || []), newReply];
+      const updatedDetail = { ...activePostDetail, replies: updatedReplies };
+      
+      setActivePostDetail(updatedDetail);
+      setPosts(prev => prev.map(p => p.id === activePostDetail.id ? updatedDetail : p));
+      setReplyInput('');
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -1887,6 +2006,241 @@ export default function App() {
         )}
 
         {/* ======================================= */}
+        {/* TABS: COMMUNITY DISCUSSION BOARDS       */}
+        {/* ======================================= */}
+        {activeTab === 'community' && (
+          <div>
+            <header className="content-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h1 className="page-title">Community Discussion Board</h1>
+                <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.9rem', margin: '0.25rem 0 0 0' }}>
+                  Ask questions, share recommendations, and connect with fellow homeschool families.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setShowRulesModal(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  🌿 Rules & Moderation
+                </button>
+                {(!currentUser || currentUser.role !== 'Student') && (
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => setShowNewPostModal(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    ➕ Start Discussion
+                  </button>
+                )}
+              </div>
+            </header>
+
+            {/* COMMUNITY GUIDELINES & MODERATION BANNER */}
+            <div style={{ 
+              background: 'var(--brand-wash, #E4EDE4)', 
+              border: '1.5px solid var(--line-strong, #6D7A6D)', 
+              borderRadius: '8px', 
+              padding: '0.85rem 1.25rem', 
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.3rem' }}>🛡️</span>
+                <div>
+                  <strong style={{ color: 'var(--ink, #1B201C)', fontSize: '0.9rem' }}>Family-Friendly & Actively Moderated Community</strong>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)' }}>
+                    All posts and replies are overseen by Community Moderators. Maintain civil, supportive, and respectful discourse.
+                  </div>
+                </div>
+              </div>
+              <button 
+                className="btn btn-sm btn-secondary"
+                onClick={() => setShowRulesModal(true)}
+                style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+              >
+                Read Guidelines
+              </button>
+            </div>
+
+            <div className="explorer-container">
+              {/* CATEGORY & TAG SIDEBAR FILTERS */}
+              <aside className="filter-sidebar">
+                <div className="filter-title">
+                  <strong>Discussion Channels</strong>
+                  <span className="filter-clear" onClick={() => { setCommunityCategory('all'); setCommunitySearchTag(''); }}>Clear</span>
+                </div>
+
+                {/* Official Categories */}
+                <div className="filter-group">
+                  <ul className="option-list">
+                    {[
+                      { id: 'all', label: '🌐 All Discussions' },
+                      { id: 'curriculum-qa', label: '📚 Curriculum Q&A' },
+                      { id: 'coops-trips', label: '🌲 Co-ops & Field Trips' },
+                      { id: 'prep', label: '🎓 High School & College Prep' },
+                      { id: 'swap', label: '🎒 Buy / Sell / Swap' },
+                      { id: 'tips', label: '💡 Teaching Tips & Advice' },
+                      { id: 'lounge', label: '💬 General Lounge' }
+                    ].map(cat => (
+                      <li 
+                        className="option-item" 
+                        key={cat.id}
+                        onClick={() => setCommunityCategory(cat.id)}
+                        style={{ 
+                          fontWeight: communityCategory === cat.id ? '700' : '500', 
+                          color: communityCategory === cat.id ? 'var(--brand, #1E3F20)' : 'inherit',
+                          background: communityCategory === cat.id ? 'var(--brand-wash, #E4EDE4)' : 'transparent',
+                          borderRadius: '4px',
+                          padding: '0.4rem 0.5rem'
+                        }}
+                      >
+                        <span>{cat.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Filter by Tag Input */}
+                <div className="filter-group">
+                  <h4 className="filter-group-title">Filter by Custom Tag</h4>
+                  <div className="search-input-wrapper">
+                    <input 
+                      type="text"
+                      className="search-input"
+                      placeholder="e.g. #Math, #HighSchool..."
+                      value={communitySearchTag}
+                      onChange={(e) => setCommunitySearchTag(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)', marginTop: '0.4rem' }}>
+                    💡 Tip: Click any tag chip on a post to filter discussions instantly.
+                  </div>
+                </div>
+              </aside>
+
+              {/* THREAD LIST */}
+              <section className="business-grid" style={{ gridTemplateColumns: '1fr' }}>
+                {communitySearchTag && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--ink-muted, #556056)' }}>Active Tag Filter:</span>
+                    <span className="res-badge" style={{ background: 'var(--brand, #1E3F20)', color: '#ffffff', fontWeight: '700' }}>
+                      {communitySearchTag.startsWith('#') ? communitySearchTag : `#${communitySearchTag}`}
+                    </span>
+                    <button 
+                      onClick={() => setCommunitySearchTag('')}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                    >
+                      Clear Filter
+                    </button>
+                  </div>
+                )}
+
+                {posts
+                  .filter(post => {
+                    const matchesCategory = communityCategory === 'all' || post.category === communityCategory;
+                    const cleanTagQuery = communitySearchTag.toLowerCase().replace('#', '').trim();
+                    const matchesTag = !cleanTagQuery || (post.tags && post.tags.some(t => t.toLowerCase().includes(cleanTagQuery)));
+                    return matchesCategory && matchesTag;
+                  })
+                  .map(post => (
+                    <article 
+                      className="curriculum-card" 
+                      key={post.id}
+                      style={{ cursor: 'pointer', padding: '1.25rem' }}
+                      onClick={() => setActivePostDetail(post)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                            {post.author.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{post.author}</div>
+                            <span style={{ fontSize: '0.65rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', padding: '1px 6px', borderRadius: '10px', fontWeight: '800' }}>
+                              {post.role || 'PARENT'}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="res-badge" style={{ background: 'var(--brand-wash, #E4EDE4)', color: 'var(--brand, #1E3F20)' }}>
+                          {post.categoryLabel || post.category}
+                        </span>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem' }}>
+                        {post.title}
+                      </h3>
+
+                      <p style={{ fontSize: '0.9rem', color: 'var(--ink-muted, #556056)', lineHeight: '1.5', marginBottom: '0.75rem' }}>
+                        {post.content}
+                      </p>
+
+                      {/* CUSTOM TAG CHIPS */}
+                      {post.tags && post.tags.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.75rem' }}>
+                          {post.tags.map(tag => (
+                            <span 
+                              key={tag}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCommunitySearchTag(tag);
+                              }}
+                              style={{ 
+                                fontSize: '0.75rem', 
+                                background: 'var(--surface-raised, #F3F1EC)', 
+                                border: '1px solid var(--line-strong, #6D7A6D)', 
+                                color: 'var(--brand, #1E3F20)', 
+                                padding: '2px 8px', 
+                                borderRadius: '12px', 
+                                fontWeight: '700',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {tag.startsWith('#') ? tag : `#${tag}`}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* CARD FOOTER METRICS */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid var(--line-subtle, #DEE3DD)', fontSize: '0.8rem', color: 'var(--ink-muted, #556056)' }}>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                          <span>💬 {post.replies ? post.replies.length : 0} Replies</span>
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const newLikes = await likeCommunityPost(post.id, post.likes);
+                              setPosts(prev => prev.map(p => p.id === post.id ? { ...p, likes: newLikes } : p));
+                            }}
+                            style={{ background: 'none', border: 'none', color: 'var(--brand, #1E3F20)', cursor: 'pointer', fontWeight: '700' }}
+                          >
+                            👍 {post.likes || 0} Helpful
+                          </button>
+                        </div>
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await flagCommunityPost(post.id, "Flagged for moderator review");
+                            alert("Post flagged for Community Moderator review. Thank you!");
+                          }}
+                          style={{ background: 'none', border: 'none', color: 'var(--ink-muted, #556056)', cursor: 'pointer', fontSize: '0.75rem' }}
+                        >
+                          🚩 Flag Post
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+              </section>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================= */}
         {/* TABS 4: RECOMMENDED RESOURCES          */}
         {/* ======================================= */}
         {activeTab === 'resources' && (
@@ -3036,6 +3390,168 @@ export default function App() {
           </div>
         )}
       </GroveDialog>
+
+      {/* COMMUNITY GUIDELINES & MODERATION MODAL */}
+      <GroveDialog
+        open={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
+        title="🌿 Community Guidelines & Moderation Protocol"
+        footer={<button className="btn btn-primary" onClick={() => setShowRulesModal(false)}>I Agree & Understand</button>}
+        width="580px"
+      >
+        <div>
+          <Notice kind="info">
+            Welcome! The Learning Grove Community Board is designed to be a safe, supportive, and uplifting environment for all homeschooling families.
+          </Notice>
+
+          <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--ink, #1B201C)', margin: '1rem 0 0.5rem 0' }}>
+            📜 Community Guidelines
+          </h4>
+
+          <ol style={{ paddingLeft: '1.2rem', lineHeight: '1.6', fontSize: '0.85rem', color: 'var(--ink, #1B201C)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <li>
+              <strong>Family-Friendly Content:</strong> Keep all discussions, replies, and titles clean, positive, and appropriate for readers of all ages.
+            </li>
+            <li>
+              <strong>Civil & Respectful Discourse:</strong> Homeschooling approaches differ widely (Secular, Classical, Unschooling, Faith-based). We celebrate diverse choices and maintain mutual respect.
+            </li>
+            <li>
+              <strong>Active Moderation Oversight:</strong> Threads and replies are monitored by Community Moderators. Misleading, offensive, or abusive content will be removed.
+            </li>
+            <li>
+              <strong>Community Flagging:</strong> Any user can click 🚩 <em>Flag Post</em> on any thread to immediately alert moderators for review.
+            </li>
+            <li>
+              <strong>No Unsolicited Commercial Spam:</strong> Commercial promotions, paid tutoring services, or business ads should be posted on the 🏪 <strong>Business Board</strong>, not in discussion channels.
+            </li>
+          </ol>
+        </div>
+      </GroveDialog>
+
+      {/* START NEW DISCUSSION MODAL */}
+      <GroveDialog
+        open={showNewPostModal}
+        onClose={() => { setShowNewPostModal(false); setFormError(null); }}
+        title="Start a New Community Discussion"
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowNewPostModal(false); setFormError(null); }}>Cancel</button>
+          <button type="submit" form="new-post-form" className="btn btn-primary">Publish Discussion</button>
+        </>}
+        width="560px"
+      >
+        <form id="new-post-form" onSubmit={handleNewPostSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          <Field id="new-post-title" label="Discussion Title / Question" required>
+            <input
+              type="text"
+              placeholder="e.g. What is your favorite 4th-grade math curriculum for visual learners?"
+              value={newPostForm.title}
+              onChange={(e) => setNewPostForm(prev => ({ ...prev, title: e.target.value }))}
+            />
+          </Field>
+
+          <Field id="new-post-cat" label="Official Channel Category" required>
+            <select
+              value={newPostForm.category}
+              onChange={(e) => setNewPostForm(prev => ({ ...prev, category: e.target.value }))}
+            >
+              <option value="curriculum-qa">📚 Curriculum Q&A</option>
+              <option value="coops-trips">🌲 Co-ops & Field Trips</option>
+              <option value="prep">🎓 High School & College Prep</option>
+              <option value="swap">🎒 Buy / Sell / Swap</option>
+              <option value="tips">💡 Teaching Tips & Advice</option>
+              <option value="lounge">💬 General Lounge</option>
+            </select>
+          </Field>
+
+          {/* PARENT CUSTOM TAGS WITH HELPER PROMPT */}
+          <Field id="new-post-tags" label="Custom Hashtags / Topics (comma-separated)">
+            <input
+              type="text"
+              placeholder="e.g. #Math, #4thGrade, #VisualLearners, #BeastAcademy"
+              value={newPostForm.tags}
+              onChange={(e) => setNewPostForm(prev => ({ ...prev, tags: e.target.value }))}
+            />
+          </Field>
+          <div style={{ fontSize: '0.75rem', background: 'var(--brand-wash, #E4EDE4)', padding: '0.5rem 0.75rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', color: 'var(--brand, #1E3F20)', fontWeight: '600', marginBottom: '1rem' }}>
+            💡 <strong>Parent Helper Hint:</strong> Add custom tags like <code>#Math</code> or <code>#SpecialNeeds</code> so other parents can easily find and filter your topic!
+          </div>
+
+          <Field id="new-post-content" label="Discussion Details" required>
+            <textarea
+              className="form-control"
+              rows="5"
+              placeholder="Provide background context, questions, or details for the community..."
+              value={newPostForm.content}
+              onChange={(e) => setNewPostForm(prev => ({ ...prev, content: e.target.value }))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
+
+      {/* THREAD DETAIL & REPLIES DIALOG */}
+      {activePostDetail && (
+        <GroveDialog
+          open={!!activePostDetail}
+          onClose={() => setActivePostDetail(null)}
+          title={activePostDetail.title}
+          footer={<button className="btn btn-secondary" onClick={() => setActivePostDetail(null)}>Close</button>}
+          width="640px"
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                {activePostDetail.author.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)' }}>{activePostDetail.author}</strong>
+                <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted, #556056)' }}>Category: {activePostDetail.categoryLabel || activePostDetail.category}</div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.95rem', color: 'var(--ink, #1B201C)', lineHeight: '1.6', background: 'var(--surface-raised, #F3F1EC)', padding: '1rem', borderRadius: '6px', marginBottom: '1rem' }}>
+              {activePostDetail.content}
+            </p>
+
+            {/* REPLIES SECTION */}
+            <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--ink, #1B201C)', marginBottom: '0.75rem' }}>
+              💬 Community Replies ({activePostDetail.replies ? activePostDetail.replies.length : 0})
+            </h4>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+              {activePostDetail.replies && activePostDetail.replies.length > 0 ? (
+                activePostDetail.replies.map((rep, idx) => (
+                  <div key={idx} style={{ padding: '0.75rem', background: 'var(--brand-wash, #E4EDE4)', borderRadius: '6px', border: '1px solid var(--line-strong, #6D7A6D)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--brand, #1E3F20)' }}>{rep.author}</strong>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{rep.created_at || 'Just now'}</span>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--ink, #1B201C)', margin: 0, lineHeight: '1.4' }}>{rep.content}</p>
+                  </div>
+                ))
+              ) : (
+                <p style={{ fontStyle: 'italic', fontSize: '0.85rem', color: 'var(--ink-muted, #556056)' }}>No replies yet. Be the first to answer!</p>
+              )}
+            </div>
+
+            {/* ADD REPLY FORM */}
+            <form onSubmit={handleNewReplySubmit} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Write a helpful reply..."
+                required
+                value={replyInput}
+                onChange={(e) => setReplyInput(e.target.value)}
+                style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', fontSize: '0.85rem' }}
+              />
+              <button type="submit" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                Reply
+              </button>
+            </form>
+          </div>
+        </GroveDialog>
+      )}
     </div>
   );
 }

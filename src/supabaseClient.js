@@ -401,3 +401,76 @@ export async function rejectResource(resourceId) {
 
   return existing;
 }
+
+// --- COMMUNITY DISCUSSION BOARD ---
+export async function getCommunityPosts() {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.warn("getCommunityPosts fallback to initial posts array:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function createCommunityPost(post) {
+  const newPost = {
+    id: 'post-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString(),
+    ...post,
+    likes: 0,
+    replies: [],
+    created_at: new Date().toISOString()
+  };
+  const { error } = await supabase.from('posts').insert([newPost]);
+  if (error) {
+    console.warn("createCommunityPost error, using local fallback object:", error);
+  }
+  return newPost;
+}
+
+export async function addCommunityReply(postId, reply) {
+  const newReply = {
+    id: 'reply-' + Date.now().toString(),
+    ...reply,
+    created_at: new Date().toISOString()
+  };
+
+  const { data: existingPost } = await supabase
+    .from('posts')
+    .select('replies')
+    .eq('id', postId)
+    .maybeSingle();
+
+  const currentReplies = existingPost?.replies || [];
+  const updatedReplies = [...currentReplies, newReply];
+
+  const { error } = await supabase
+    .from('posts')
+    .update({ replies: updatedReplies })
+    .eq('id', postId);
+
+  if (error) console.warn("addCommunityReply update warning:", error);
+  return newReply;
+}
+
+export async function likeCommunityPost(postId, currentLikes) {
+  const updatedLikes = (currentLikes || 0) + 1;
+  const { error } = await supabase
+    .from('posts')
+    .update({ likes: updatedLikes })
+    .eq('id', postId);
+  if (error) console.warn("likeCommunityPost update warning:", error);
+  return updatedLikes;
+}
+
+export async function flagCommunityPost(postId, reason) {
+  const { error } = await supabase
+    .from('posts')
+    .update({ flagged: true, flag_reason: reason })
+    .eq('id', postId);
+  if (error) console.warn("flagCommunityPost update warning:", error);
+  return true;
+}
