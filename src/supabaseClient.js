@@ -147,17 +147,89 @@ export async function addCurriculumReview(curriculumId, reviewItem) {
   return newReview;
 }
 
+// --- SITE OWNER IDENTIFICATION ---
+export const SITE_OWNER_EMAILS = [
+  'owner@thelearninggrove.org',
+  'admin@thelearninggrove.org',
+  'hostingsite.wanting320@passmail.net',
+  'allison.haynie35@gmail.com',
+  'allison.haynie35@gmail',
+  'erick.haynie@gmail.com',
+  'erick.haynie@gmail'
+];
+
+export function isSiteOwner(user) {
+  if (!user) return false;
+  const role = (user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'siteowner' || role === 'owner') return true;
+  if (user.isSiteOwner || user.isAdmin) return true;
+  if (user.assignedRoles && user.assignedRoles.some(r => ['admin', 'siteowner', 'owner'].includes((r || '').toLowerCase()))) return true;
+  if (user.email && SITE_OWNER_EMAILS.includes(user.email.toLowerCase())) return true;
+  return false;
+}
+
 // --- FIELD TRIPS ---
 export async function getFieldTrips() {
-  const { data, error } = await supabase.from('fieldtrips').select('*');
   const localTrips = JSON.parse(localStorage.getItem('grove_custom_fieldtrips') || '[]');
-  if (error) {
-    console.warn("getFieldTrips error, serving local trips:", error);
-    return localTrips;
+  let dbTrips = [];
+  try {
+    const { data, error } = await supabase.from('fieldtrips').select('*');
+    if (!error && data && data.length > 0) {
+      dbTrips = data;
+    }
+  } catch (err) {
+    console.warn("getFieldTrips exception:", err);
   }
-  const remoteIds = new Set((data || []).map(d => d.id));
-  const merged = [...(data || []), ...localTrips.filter(lt => !remoteIds.has(lt.id))];
-  return merged;
+
+  const defaultSampleFieldTrips = [
+    {
+      id: 'trip-1',
+      name: 'Fernbank Museum of Natural History & Giant Screen Theater',
+      subject: 'Science',
+      cost: 'Free (Donation Encouraged)',
+      rating: 5,
+      description: 'Explore prehistoric dinosaur halls, hands-on science discovery rooms, and outdoor forest trails.',
+      location: '767 Clifton Rd, Atlanta, GA 30307',
+      city: 'Atlanta',
+      state: 'GA',
+      zip: '30307',
+      gradeRecommendation: 'All Ages / Family Outing'
+    },
+    {
+      id: 'trip-2',
+      name: 'Tellus Science Museum & Observatory',
+      subject: 'Science',
+      cost: 'Free Admission',
+      rating: 5,
+      description: '120,000 sq ft museum featuring fossil galleries, minerals, solar telescope observatory, and planetarium shows.',
+      location: '100 Tellus Dr, Cartersville, GA 30120',
+      city: 'Cartersville',
+      state: 'GA',
+      zip: '30120',
+      gradeRecommendation: 'Elementary (Ages 5-10)'
+    },
+    {
+      id: 'trip-3',
+      name: 'Georgia State Capitol & Educational Museum',
+      subject: 'History',
+      cost: 'Free Admission',
+      rating: 4,
+      description: 'Guided tour of the legislative chambers, historic dome, and Georgia history museum.',
+      location: '206 Washington St SW, Atlanta, GA 30334',
+      city: 'Atlanta',
+      state: 'GA',
+      zip: '30334',
+      gradeRecommendation: 'Middle (Ages 11-13)'
+    }
+  ];
+
+  const merged = [...localTrips, ...dbTrips];
+  if (merged.length === 0) return defaultSampleFieldTrips;
+
+  const map = new Map();
+  defaultSampleFieldTrips.forEach(t => map.set(t.id, t));
+  merged.forEach(t => map.set(t.id, t));
+  return Array.from(map.values());
 }
 
 export async function addFieldTrip(item) {
@@ -431,16 +503,62 @@ export async function rejectResource(resourceId) {
 
 // --- COMMUNITY DISCUSSION BOARD ---
 export async function getCommunityPosts() {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const localPosts = JSON.parse(localStorage.getItem('grove_custom_posts') || '[]');
+  let dbPosts = [];
+  try {
+    const { data, error } = await supabase
+      .from('communityposts')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) {
-    console.warn("getCommunityPosts fallback to initial posts array:", error);
-    return null;
+    if (!error && data && data.length > 0) {
+      dbPosts = data;
+    }
+  } catch (err) {
+    console.warn("getCommunityPosts exception:", err);
   }
-  return data;
+
+  const defaultSamplePosts = [
+    {
+      id: 'post-1',
+      author: 'Sarah Jenkins',
+      role: 'PARENT',
+      title: "What is your favorite 4th-grade math curriculum for visual learners?",
+      category: 'curriculum-qa',
+      categoryLabel: '📚 Curriculum Q&A',
+      content: "My son struggles with plain textbook worksheets and benefits from visual manipulatives and short video lessons. We've looked into Beast Academy and Math-U-See. What have you found works best for visual 4th graders?",
+      tags: ['#Math', '#4thGrade', '#VisualLearners', '#BeastAcademy'],
+      likes: 12,
+      replies: [
+        { id: 'rep-1', author: 'Eric H', content: "Beast Academy is fantastic for visual problem-solving! The comic guide books keep kids engaged, and the online practice provides instant feedback.", created_at: '2 hours ago' },
+        { id: 'rep-2', author: 'Allison H', content: "Seconding Beast Academy! We also used Math-U-See blocks for tactile math concepts.", created_at: '1 hour ago' }
+      ],
+      created_at: '2026-07-28T14:00:00Z'
+    },
+    {
+      id: 'post-2',
+      author: 'David Miller',
+      role: 'PARENT',
+      title: "North Atlanta Science Museum Group Field Trip — Discount Rates Available!",
+      category: 'coops-trips',
+      categoryLabel: '🌲 Co-ops & Field Trips',
+      content: "We are organizing a group visit to the Science Museum for 15+ homeschool families on June 15th. Group admission is $8/student (normally $18). Let us know if your family would like to join!",
+      tags: ['#FieldTrips', '#Science', '#Atlanta', '#CoOp'],
+      likes: 18,
+      replies: [
+        { id: 'rep-3', author: 'Sarah Jenkins', content: "Count us in! I have two 4th graders.", created_at: '3 hours ago' }
+      ],
+      created_at: '2026-07-26T16:30:00Z'
+    }
+  ];
+
+  const merged = [...localPosts, ...dbPosts];
+  if (merged.length === 0) return defaultSamplePosts;
+
+  const map = new Map();
+  defaultSamplePosts.forEach(p => map.set(p.id, p));
+  merged.forEach(p => map.set(p.id, p));
+  return Array.from(map.values());
 }
 
 export async function createCommunityPost(post) {
@@ -607,22 +725,7 @@ export async function deleteBusinessAd(adId) {
   return true;
 }
 
-// --- SITE OWNER IDENTIFICATION ---
-export const SITE_OWNER_EMAILS = [
-  'owner@thelearninggrove.org',
-  'admin@thelearninggrove.org',
-  'hostingsite.wanting320@passmail.net'
-];
 
-export function isSiteOwner(user) {
-  if (!user) return false;
-  const role = (user.role || '').toLowerCase();
-  if (role === 'admin' || role === 'siteowner' || role === 'owner') return true;
-  if (user.isSiteOwner || user.isAdmin) return true;
-  if (user.assignedRoles && user.assignedRoles.some(r => ['admin', 'siteowner', 'owner'].includes((r || '').toLowerCase()))) return true;
-  if (user.email && SITE_OWNER_EMAILS.includes(user.email.toLowerCase())) return true;
-  return false;
-}
 
 // --- ADMIN & SITE OWNER ROLE MANAGEMENT ---
 export async function getAllUsers() {

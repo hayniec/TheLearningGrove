@@ -333,7 +333,7 @@ export default function App() {
         getFieldTrips(),
         getBusinessAds(),
         getResources(),
-        getPosts()
+        getCommunityPosts()
       ]);
 
       setCurricula(currRes);
@@ -422,6 +422,19 @@ export default function App() {
     fetchData();
   }, []);
 
+  // URL Hash Sync for Tab Navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (['home', 'explorer', 'community', 'fieldtrips', 'businesses', 'resources', 'dashboard'].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   // Fetch subusers and pending resources based on login status
   useEffect(() => {
     if (currentUser) {
@@ -460,21 +473,20 @@ export default function App() {
     let map = null;
     
     if (activeTab === 'fieldtrips' && filteredFieldTrips.length > 0) {
-      const mapContainer = document.getElementById('field-trip-map');
-      if (mapContainer && window.L) {
-        // Clean up previous map if any
-        if (window.tripMap) {
-          window.tripMap.remove();
-          window.tripMap = null;
-        }
+      try {
+        const mapContainer = document.getElementById('field-trip-map');
+        if (mapContainer && window.L) {
+          if (window.tripMap) {
+            try { window.tripMap.remove(); } catch (e) {}
+            window.tripMap = null;
+          }
 
-        const tripsWithCoords = filteredFieldTrips.filter(t => t.lat && t.lng);
-        const center = tripsWithCoords.length > 0 
-          ? [tripsWithCoords[0].lat, tripsWithCoords[0].lng] 
-          : [39.8283, -98.5795]; // Center of US
-        const zoom = tripsWithCoords.length > 0 ? 10 : 4;
+          const tripsWithCoords = filteredFieldTrips.filter(t => t.lat && t.lng);
+          const center = tripsWithCoords.length > 0 
+            ? [tripsWithCoords[0].lat, tripsWithCoords[0].lng] 
+            : [39.8283, -98.5795];
+          const zoom = tripsWithCoords.length > 0 ? 10 : 4;
 
-        try {
           map = window.L.map('field-trip-map', { scrollWheelZoom: false }).setView(center, zoom);
           window.tripMap = map;
 
@@ -488,26 +500,16 @@ export default function App() {
                 <strong style="color: var(--color-primary); font-size: 0.95rem; display: block; margin-bottom: 2px;">${trip.name}</strong>
                 <span style="font-size: 0.75rem; color: var(--color-text-muted); display: block; margin-bottom: 6px;">📍 ${trip.city || ''}, ${trip.state || ''}</span>
                 <p style="margin: 0 0 8px 0; font-size: 0.8rem; color: var(--color-text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${trip.description}</p>
-                <button onclick="window.showTripFromMap('${trip.id}')" style="background: var(--color-primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: 600; width: 100%; transition: all 0.2s;">View Details</button>
               </div>
             `;
             const marker = window.L.marker([trip.lat, trip.lng]).addTo(map);
             marker.bindPopup(popupHtml);
           });
-        } catch (err) {
-          console.error("Error drawing Leaflet map: ", err);
         }
+      } catch (err) {
+        console.warn("Leaflet map integration error ignored:", err);
       }
     }
-
-    return () => {
-      if (map) {
-        map.remove();
-        if (window.tripMap === map) {
-          window.tripMap = null;
-        }
-      }
-    };
   }, [activeTab, filteredFieldTrips]);
 
   // Bind trip viewer helper to window for Leaflet popups
