@@ -606,3 +606,50 @@ export async function deleteBusinessAd(adId) {
   localStorage.setItem('grove_custom_ads', JSON.stringify(existingLocal.filter(a => a.id !== adId)));
   return true;
 }
+
+// --- ADMIN & SITE OWNER ROLE MANAGEMENT ---
+export async function getAllUsers() {
+  let dbUsers = [];
+  try {
+    const { data, error } = await supabase.from('users').select('*');
+    if (!error && data) dbUsers = data;
+  } catch (err) {
+    console.warn("getAllUsers exception:", err);
+  }
+
+  const defaultUsers = [
+    { id: 'parent-1', name: 'Jane Doe', email: 'jane@example.com', role: 'Parent', assignedRoles: ['Parent'] },
+    { id: 'mod-1', name: 'Sarah Miller', email: 'sarah.moderator@thelearninggrove.org', role: 'Moderator', assignedRoles: ['Parent', 'Moderator'] },
+    { id: 'admin-1', name: 'Erich (Site Owner)', email: 'owner@thelearninggrove.org', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] }
+  ];
+
+  const localCustom = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');
+  const combined = [...defaultUsers, ...dbUsers, ...localCustom];
+  
+  const map = new Map();
+  combined.forEach(u => {
+    if (u.id) {
+      const assigned = u.assignedRoles || [u.role || 'Parent'];
+      map.set(u.id, { ...u, assignedRoles: assigned });
+    }
+  });
+  return Array.from(map.values());
+}
+
+export async function updateUserRolePermissions(userId, primaryRole, assignedRoles = [primaryRole]) {
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ role: primaryRole, assignedRoles })
+      .eq('id', userId);
+    if (error) console.warn("updateUserRolePermissions DB warning:", error);
+  } catch (err) {
+    console.warn("updateUserRolePermissions exception:", err);
+  }
+
+  const localCustom = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');
+  const updatedLocal = localCustom.map(u => u.id === userId ? { ...u, role: primaryRole, assignedRoles } : u);
+  localStorage.setItem('grove_custom_users', JSON.stringify(updatedLocal));
+
+  return { id: userId, role: primaryRole, assignedRoles };
+}

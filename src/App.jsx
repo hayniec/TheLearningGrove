@@ -35,6 +35,8 @@ import {
   deleteFieldTrip,
   deleteCommunityPost,
   deleteBusinessAd,
+  getAllUsers,
+  updateUserRolePermissions,
   hashPassword
 } from './supabaseClient';
 
@@ -243,6 +245,9 @@ export default function App() {
   const [showCurriculumModal, setShowCurriculumModal] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [allUsersList, setAllUsersList] = useState([]);
+  const [roleUpdateMsg, setRoleUpdateMsg] = useState(null);
   const [formError, setFormError] = useState(null);
   const [subUserError, setSubUserError] = useState(null);
   const [subUserSuccess, setSubUserSuccess] = useState(null);
@@ -706,6 +711,25 @@ export default function App() {
       console.error(err);
       setFormError("An unexpected error occurred while publishing the post.");
     }
+  };
+
+  const handleOpenRoleModal = async () => {
+    const users = await getAllUsers();
+    setAllUsersList(users);
+    setShowRoleModal(true);
+    setRoleUpdateMsg(null);
+  };
+
+  const handleSaveUserRoles = async (userId, primaryRole, assignedRoles) => {
+    await updateUserRolePermissions(userId, primaryRole, assignedRoles);
+    setAllUsersList(prev => prev.map(u => u.id === userId ? { ...u, role: primaryRole, assignedRoles } : u));
+    if (currentUser && currentUser.id === userId) {
+      const updated = { ...currentUser, role: primaryRole, assignedRoles };
+      setCurrentUser(updated);
+      localStorage.setItem('grove_user', JSON.stringify(updated));
+    }
+    setRoleUpdateMsg("Role permissions updated successfully!");
+    setTimeout(() => setRoleUpdateMsg(null), 3000);
   };
 
   const handleAuthSubmit = async (e) => {
@@ -1213,6 +1237,13 @@ export default function App() {
                     Switch to Parent
                   </button>
                 )}
+
+                <button 
+                  onClick={() => { handleOpenRoleModal(); setIsMobileDrawerOpen(false); }}
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--oak-text, #8A5320)', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', borderRadius: '4px', cursor: 'pointer', fontWeight: '800', marginBottom: '0.4rem' }}
+                >
+                  👑 Assign Member Roles
+                </button>
 
                 <button 
                   onClick={() => {
@@ -3981,6 +4012,86 @@ export default function App() {
             />
           </Field>
         </form>
+      </GroveDialog>
+
+      {/* 👑 SITE OWNER USER ROLE & PERMISSIONS MANAGEMENT DIALOG */}
+      <GroveDialog
+        open={showRoleModal}
+        onClose={() => setShowRoleModal(false)}
+        title="👑 Site Owner: User Role & Permissions Management"
+        footer={<button className="btn btn-secondary" onClick={() => setShowRoleModal(false)}>Close Admin Panel</button>}
+        width="750px"
+      >
+        <div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--ink-muted, #556056)', marginBottom: '1rem', lineHeight: '1.4' }}>
+            As a <strong>Site Owner / Admin</strong>, you can assign role permissions to registered members. Granting multiple roles enables the role switcher menu for that user.
+          </p>
+
+          {roleUpdateMsg && (
+            <Notice kind="success" style={{ marginBottom: '1rem' }}>
+              {roleUpdateMsg}
+            </Notice>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {allUsersList.map(user => {
+              const currentRoles = user.assignedRoles || [user.role || 'Parent'];
+              return (
+                <div 
+                  key={user.id} 
+                  style={{
+                    background: 'var(--surface-raised, #F3F1EC)',
+                    border: '1.5px solid var(--line-subtle, #DEE3DD)',
+                    borderRadius: '8px',
+                    padding: '0.85rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--ink, #1B201C)' }}>
+                      {user.name} <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted, #556056)', fontWeight: '500' }}>({user.email || user.id})</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--oak-text, #8A5320)', fontWeight: '700', marginTop: '2px' }}>
+                      Active Primary Role: {user.role || 'Parent'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.75rem', fontWeight: '700' }}>
+                      {['Parent', 'Moderator', 'Admin'].map(r => {
+                        const isChecked = currentRoles.includes(r);
+                        return (
+                          <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', background: isChecked ? 'var(--brand-wash, #E4EDE4)' : 'transparent', padding: '3px 6px', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={isChecked}
+                              onChange={(e) => {
+                                let newAssigned = [];
+                                if (e.target.checked) {
+                                  newAssigned = [...currentRoles, r];
+                                } else {
+                                  newAssigned = currentRoles.filter(role => role !== r);
+                                  if (newAssigned.length === 0) newAssigned = ['Parent'];
+                                }
+                                const primary = newAssigned[0];
+                                handleSaveUserRoles(user.id, primary, newAssigned);
+                              }}
+                            />
+                            <span>{r === 'Admin' ? 'Site Owner (Admin)' : r}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </GroveDialog>
     </div>
   );
