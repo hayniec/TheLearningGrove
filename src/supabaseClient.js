@@ -474,3 +474,49 @@ export async function flagCommunityPost(postId, reason) {
   if (error) console.warn("flagCommunityPost update warning:", error);
   return true;
 }
+
+// --- DISCUSSION REQUESTS FOR MODERATORS ---
+export async function requestCommunityDiscussion(requestData) {
+  const newRequest = {
+    id: 'req-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000).toString(),
+    ...requestData,
+    status: 'pending',
+    created_at: new Date().toISOString()
+  };
+  const { error } = await supabase.from('discussion_requests').insert([newRequest]);
+  if (error) console.warn("requestCommunityDiscussion DB warning:", error);
+  return newRequest;
+}
+
+export async function getDiscussionRequests() {
+  const { data, error } = await supabase
+    .from('discussion_requests')
+    .select('*')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.warn("getDiscussionRequests DB fallback:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function approveDiscussionRequest(requestId, requestObj) {
+  const { error: reqErr } = await supabase
+    .from('discussion_requests')
+    .update({ status: 'approved' })
+    .eq('id', requestId);
+  if (reqErr) console.warn("approveDiscussionRequest update warning:", reqErr);
+
+  const newPost = await createCommunityPost({
+    author: requestObj.author || 'Parent Member',
+    role: requestObj.role || 'PARENT',
+    title: requestObj.title,
+    category: requestObj.category,
+    categoryLabel: requestObj.categoryLabel || 'General',
+    content: requestObj.content,
+    tags: requestObj.tags || []
+  });
+
+  return newPost;
+}

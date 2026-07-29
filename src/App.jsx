@@ -27,6 +27,9 @@ import {
   addCommunityReply,
   likeCommunityPost,
   flagCommunityPost,
+  requestCommunityDiscussion,
+  getDiscussionRequests,
+  approveDiscussionRequest,
   hashPassword
 } from './supabaseClient';
 
@@ -185,6 +188,10 @@ export default function App() {
   const [posts, setPosts] = useState(initialSamplePosts);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState(null);
+  const [discussionRequests, setDiscussionRequests] = useState([]);
+  const [requestForm, setRequestForm] = useState({ title: '', category: 'curriculum-qa', content: '', tags: '', email: '', reason: '' });
   const [communityCategory, setCommunityCategory] = useState('all');
   const [communitySearchTag, setCommunitySearchTag] = useState('');
   const [activePostDetail, setActivePostDetail] = useState(null);
@@ -377,17 +384,7 @@ export default function App() {
     return matchesSearch && matchesCategory && matchesType;
   });
 
-  // Community Forum Filtering Logic
-  const filteredPosts = posts.filter(item => {
-    const matchesSearch = postSearchQuery.trim() === '' || 
-                          item.title.toLowerCase().includes(postSearchQuery.toLowerCase()) || 
-                          item.content.toLowerCase().includes(postSearchQuery.toLowerCase()) ||
-                          item.author.toLowerCase().includes(postSearchQuery.toLowerCase());
-                          
-    const matchesCategory = selectedPostCategory === 'All' || item.category === selectedPostCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+
 
   useEffect(() => {
     fetchData();
@@ -412,8 +409,12 @@ export default function App() {
         getPendingResources()
           .then(data => setPendingResources(data))
           .catch(err => console.error("Error fetching pending resources:", err));
+        getDiscussionRequests()
+          .then(data => setDiscussionRequests(data))
+          .catch(err => console.error("Error fetching discussion requests:", err));
       } else {
         setPendingResources([]);
+        setDiscussionRequests([]);
       }
     } else {
       localStorage.removeItem('grove_user');
@@ -826,6 +827,51 @@ export default function App() {
     }
   };
 
+  const handleDiscussionRequestSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestForm.title.trim() || !requestForm.content.trim()) {
+      setFormError("Please fill in both the discussion title and details.");
+      return;
+    }
+
+    const tagArray = requestForm.tags
+      ? requestForm.tags.split(',').map(t => t.trim()).filter(Boolean)
+      : [];
+
+    const categoryLabels = {
+      'curriculum-qa': '📚 Curriculum Q&A',
+      'coops-trips': '🌲 Co-ops & Field Trips',
+      'prep': '🎓 High School & College Prep',
+      'swap': '🎒 Buy / Sell / Swap',
+      'tips': '💡 Teaching Tips & Advice',
+      'lounge': '💬 General Lounge'
+    };
+
+    const requestPayload = {
+      author: currentUser ? currentUser.name : 'Parent Member',
+      email: currentUser ? currentUser.email : (requestForm.email || 'N/A'),
+      role: currentUser ? currentUser.role : 'PARENT',
+      title: requestForm.title,
+      category: requestForm.category,
+      categoryLabel: categoryLabels[requestForm.category] || 'General',
+      content: requestForm.content,
+      tags: tagArray,
+      reason: requestForm.reason
+    };
+
+    try {
+      const created = await requestCommunityDiscussion(requestPayload);
+      setDiscussionRequests(prev => [created, ...prev]);
+      setRequestForm({ title: '', category: 'curriculum-qa', content: '', tags: '', email: '', reason: '' });
+      setShowRequestModal(false);
+      setFormError(null);
+      setRequestSuccess(`Thank you! Your discussion request for "${requestPayload.title}" has been submitted to our moderation team for review.`);
+    } catch (err) {
+      console.error(err);
+      setFormError("Failed to submit discussion request.");
+    }
+  };
+
   const handleApproveResource = async (id) => {
     try {
       await approveResource(id);
@@ -1131,6 +1177,15 @@ export default function App() {
                 >
                   <CurriculaIcon />
                   <span>Curricula</span>
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'community' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('community'); setIsMobileDrawerOpen(false); }}
+                >
+                  <CommunityIcon />
+                  <span>Community Board</span>
                 </button>
               </li>
               <li className="nav-item">
@@ -1656,102 +1711,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ======================================= */}
-        {/* TABS 3: COMMUNITY BOARD (FORUM)         */}
-        {/* ======================================= */}
-        {activeTab === 'community' && (
-          <div>
-            <header className="content-header">
-              <div>
-                <h1 className="page-title">Community Board</h1>
-              </div>
-              {(!currentUser || currentUser.role !== 'Student') && (
-                <button className="btn btn-primary" onClick={() => setShowPostModal(true)}>
-                  <PlusIcon /> Share Update / Post
-                </button>
-              )}
-            </header>
 
-            <div className="explorer-container">
-              {/* Forum Filters */}
-              <aside className="filter-sidebar">
-                <div className="filter-title">
-                  <strong>Filter Discussions</strong>
-                  <span className="filter-clear" onClick={() => {
-                    setPostSearchQuery('');
-                    setSelectedPostCategory('All');
-                  }}>Clear</span>
-                </div>
-
-                {/* Keyword Search */}
-                <div className="filter-group">
-                  <div className="search-input-wrapper">
-                    <input 
-                      type="text" 
-                      className="search-input" 
-                      placeholder="Search posts..." 
-                      value={postSearchQuery}
-                      onChange={(e) => setPostSearchQuery(e.target.value)}
-                    />
-                    <svg className="search-icon" viewBox="0 0 24 24">
-                      <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Category selection */}
-                <div className="filter-group">
-                  <h4 className="filter-group-title">Category</h4>
-                  <ul className="option-list">
-                    {['All', 'General', 'Questions', 'Advice', 'Meetups'].map(cat => (
-                      <li 
-                        className="option-item" 
-                        key={cat} 
-                        onClick={() => setSelectedPostCategory(cat)}
-                        style={{ fontWeight: selectedPostCategory === cat ? '700' : 'normal', color: selectedPostCategory === cat ? 'var(--color-primary)' : 'inherit' }}
-                      >
-                        <input 
-                          type="radio" 
-                          name="post-category"
-                          checked={selectedPostCategory === cat}
-                          onChange={() => {}}
-                        />
-                        <span>{cat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </aside>
-
-              {/* Feed of Posts */}
-              <section className="feed-list" style={{ width: '100%' }}>
-                {filteredPosts.length > 0 ? (
-                  filteredPosts.map(post => (
-                    <article className="post-card" key={post.id}>
-                      <div className="post-header">
-                        <h3 className="post-title">{post.title}</h3>
-                        <span className={`badge-category badge-${post.category.toLowerCase()}`}>
-                          {post.category}
-                        </span>
-                      </div>
-                      <div className="post-meta">
-                        <span>By <strong>{post.author}</strong></span>
-                        <span>•</span>
-                        <span>{new Date(post.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <p className="post-content">{post.content}</p>
-                    </article>
-                  ))
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-text-muted)' }}>
-                    <h3>No community posts matched your filters.</h3>
-                    <p style={{ marginTop: '0.5rem' }}>Be the first to share an update or question!</p>
-                  </div>
-                )}
-              </section>
-            </div>
-          </div>
-        )}
 
         {/* ======================================= */}
         {/* TABS 4: FIELD TRIPS                     */}
@@ -2028,14 +1988,20 @@ export default function App() {
                 {(!currentUser || currentUser.role !== 'Student') && (
                   <button 
                     className="btn btn-primary" 
-                    onClick={() => setShowNewPostModal(true)}
+                    onClick={() => setShowRequestModal(true)}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                   >
-                    ➕ Start Discussion
+                    📝 Request a New Discussion
                   </button>
                 )}
               </div>
             </header>
+
+            {requestSuccess && (
+              <Notice kind="success" onClose={() => setRequestSuccess(null)} style={{ marginBottom: '1rem' }}>
+                {requestSuccess}
+              </Notice>
+            )}
 
             {/* COMMUNITY GUIDELINES & MODERATION BANNER */}
             <div style={{ 
@@ -2787,62 +2753,7 @@ export default function App() {
         </form>
       </GroveDialog>
 
-      {/* 4. SHARE COMMUNITY POST */}
-      <GroveDialog
-        open={showPostModal}
-        onClose={() => { setShowPostModal(false); setFormError(null); }}
-        title="Share a Community Update / Post"
-        footer={<>
-          <button type="button" className="btn btn-secondary" onClick={() => { setShowPostModal(false); setFormError(null); }}>Cancel</button>
-          <button type="submit" form="post-form" className="btn btn-primary">Publish Post</button>
-        </>}
-      >
-        <form id="post-form" onSubmit={handlePostSubmit}>
-          {formError && <Notice kind="error">{formError}</Notice>}
 
-          <Field id="post-title" label="Post Title" required>
-            <input
-              type="text"
-              placeholder="e.g. Suggestions for homeschool field trips in June?"
-              value={newPost.title}
-              onChange={(e) => setNewPost(prev => ({...prev, title: e.target.value}))}
-            />
-          </Field>
-
-          <div className="form-row">
-            <Field id="post-author" label="Your Name" required>
-              <input
-                type="text"
-                placeholder="e.g. Sarah Jenkins"
-                value={newPost.author}
-                onChange={(e) => setNewPost(prev => ({...prev, author: e.target.value}))}
-              />
-            </Field>
-
-            <Field id="post-cat" label="Category" required>
-              <select
-                value={newPost.category}
-                onChange={(e) => setNewPost(prev => ({...prev, category: e.target.value}))}
-              >
-                <option value="General">General / Updates</option>
-                <option value="Questions">Questions / Help Needed</option>
-                <option value="Advice">Advice / Reviews</option>
-                <option value="Meetups">Co-ops / Meetups</option>
-              </select>
-            </Field>
-          </div>
-
-          <Field id="post-content" label="Post Content" required>
-            <textarea
-              className="form-control"
-              rows="5"
-              placeholder="Type your message here..."
-              value={newPost.content}
-              onChange={(e) => setNewPost(prev => ({...prev, content: e.target.value}))}
-            />
-          </Field>
-        </form>
-      </GroveDialog>
 
       {/* 5. SUBMIT RESOURCE */}
       <GroveDialog
@@ -3552,6 +3463,91 @@ export default function App() {
           </div>
         </GroveDialog>
       )}
+
+      {/* REQUEST A NEW DISCUSSION MODAL */}
+      <GroveDialog
+        open={showRequestModal}
+        onClose={() => { setShowRequestModal(false); setFormError(null); }}
+        title="Request a New Community Discussion"
+        footer={<>
+          <button type="button" className="btn btn-secondary" onClick={() => { setShowRequestModal(false); setFormError(null); }}>Cancel</button>
+          <button type="submit" form="request-discussion-form" className="btn btn-primary">Submit Request to Team</button>
+        </>}
+        width="580px"
+      >
+        <form id="request-discussion-form" onSubmit={handleDiscussionRequestSubmit}>
+          {formError && <Notice kind="error">{formError}</Notice>}
+
+          <Notice kind="info" style={{ marginBottom: '1rem' }}>
+            💡 Want to start a new discussion topic for the community? Fill out the details below and our moderation team will review and publish your discussion thread!
+          </Notice>
+
+          <Field id="req-title" label="Proposed Discussion Title / Question" required>
+            <input
+              type="text"
+              placeholder="e.g. Seeking recommendations for high school AP Chemistry lab kits"
+              value={requestForm.title}
+              onChange={(e) => setRequestForm(prev => ({ ...prev, title: e.target.value }))}
+            />
+          </Field>
+
+          <div className="form-row">
+            <Field id="req-cat" label="Suggested Channel Category" required>
+              <select
+                value={requestForm.category}
+                onChange={(e) => setRequestForm(prev => ({ ...prev, category: e.target.value }))}
+              >
+                <option value="curriculum-qa">📚 Curriculum Q&A</option>
+                <option value="coops-trips">🌲 Co-ops & Field Trips</option>
+                <option value="prep">🎓 High School & College Prep</option>
+                <option value="swap">🎒 Buy / Sell / Swap</option>
+                <option value="tips">💡 Teaching Tips & Advice</option>
+                <option value="lounge">💬 General Lounge</option>
+              </select>
+            </Field>
+
+            {!currentUser && (
+              <Field id="req-email" label="Your Email Address" required>
+                <input
+                  type="email"
+                  placeholder="parent@example.com"
+                  value={requestForm.email}
+                  onChange={(e) => setRequestForm(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </Field>
+            )}
+          </div>
+
+          <Field id="req-tags" label="Suggested Hashtags / Tags (comma-separated)">
+            <input
+              type="text"
+              placeholder="e.g. #APChemistry, #HighSchool, #ScienceLabs"
+              value={requestForm.tags}
+              onChange={(e) => setRequestForm(prev => ({ ...prev, tags: e.target.value }))}
+            />
+          </Field>
+
+          <Field id="req-content" label="Discussion Background & Details" required>
+            <textarea
+              className="form-control"
+              rows="4"
+              placeholder="Provide background context on what you want to discuss with other parents..."
+              value={requestForm.content}
+              onChange={(e) => setRequestForm(prev => ({ ...prev, content: e.target.value }))}
+            />
+          </Field>
+
+          <Field id="req-reason" label="Why would this discussion benefit the community? (Optional)">
+            <textarea
+              className="form-control"
+              rows="2"
+              placeholder="e.g. Many parents in our local co-op are looking for hands-on high school lab advice..."
+              value={requestForm.reason}
+              onChange={(e) => setRequestForm(prev => ({ ...prev, reason: e.target.value }))}
+            />
+          </Field>
+        </form>
+      </GroveDialog>
     </div>
   );
 }
