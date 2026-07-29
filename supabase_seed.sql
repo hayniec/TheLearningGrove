@@ -125,7 +125,17 @@ CREATE TABLE IF NOT EXISTS resources (
   "createdAt" BIGINT
 );
 
--- Step 2: Clear all records safely
+-- Step 2: Enable RLS with permissive public access policies
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE curricula DISABLE ROW LEVEL SECURITY;
+ALTER TABLE curriculum_reviews DISABLE ROW LEVEL SECURITY;
+ALTER TABLE fieldtrips DISABLE ROW LEVEL SECURITY;
+ALTER TABLE businessads DISABLE ROW LEVEL SECURITY;
+ALTER TABLE posts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE communityposts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE resources DISABLE ROW LEVEL SECURITY;
+
+-- Step 3: Clear all records safely
 DELETE FROM curriculum_reviews;
 DELETE FROM curricula;
 DELETE FROM fieldtrips;
@@ -135,7 +145,7 @@ DELETE FROM communityposts;
 DELETE FROM resources;
 DELETE FROM users;
 
--- Step 3: Reseed USERS
+-- Step 4: Reseed USERS
 INSERT INTO users (id, email, password, name, role, "assignedRoles", "parentId") VALUES
 ('admin-1', 'hostingsite.wanting320@passmail.net', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Site Owner', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
 ('admin-2', 'allison.haynie35@gmail.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Allison Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
@@ -143,7 +153,7 @@ INSERT INTO users (id, email, password, name, role, "assignedRoles", "parentId")
 ('parent-1', 'sarah.jenkins@example.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Sarah Jenkins', 'Parent', ARRAY['Parent'], NULL),
 ('parent-2', 'david.miller@example.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'David Miller', 'Parent', ARRAY['Parent'], NULL);
 
--- Step 4: Reseed CURRICULA
+-- Step 5: Reseed CURRICULA
 INSERT INTO curricula (
   id, name, subject, delivery, grouping, cost, rating, "favoritePart", "answerKey", 
   methodology, "onlineResources", "selfPaced", "classParticipation", worldview, 
@@ -250,7 +260,7 @@ INSERT INTO curricula (
   'admin-3'
 );
 
--- Step 5: Reseed CURRICULUM REVIEWS
+-- Step 6: Reseed CURRICULUM REVIEWS
 INSERT INTO curriculum_reviews (id, "curriculumId", "userId", "userName", rating, "favoritePart", description, "createdAt") VALUES
 (
   'review-beast-1',
@@ -273,7 +283,7 @@ INSERT INTO curriculum_reviews (id, "curriculumId", "userId", "userName", rating
   1785285000000
 );
 
--- Step 6: Reseed FIELD TRIPS
+-- Step 7: Reseed FIELD TRIPS
 INSERT INTO fieldtrips (
   id, name, subject, cost, rating, description, location, city, state, zip, "websiteUrl", "gradeRecommendation", lat, lng, "userId"
 ) VALUES
@@ -329,7 +339,7 @@ INSERT INTO fieldtrips (
   'admin-2'
 );
 
--- Step 7: Reseed BUSINESS ADS
+-- Step 8: Reseed BUSINESS ADS
 INSERT INTO businessads (
   id, owner, "businessName", description, category, "businessType", contact, link, "userId"
 ) VALUES
@@ -356,7 +366,7 @@ INSERT INTO businessads (
   'admin-3'
 );
 
--- Step 8: Reseed POSTS & COMMUNITYPOSTS
+-- Step 9: Reseed POSTS & COMMUNITYPOSTS
 INSERT INTO posts (
   id, author, role, title, category, "categoryLabel", content, tags, likes, replies, created_at, "userId"
 ) VALUES
@@ -421,7 +431,7 @@ INSERT INTO communityposts (
   'parent-2'
 );
 
--- Step 9: Reseed RESOURCES
+-- Step 10: Reseed RESOURCES
 INSERT INTO resources (
   id, name, subject, cost, link, description, type, approved, "submittedBy", "submittedByEmail", "createdAt"
 ) VALUES
