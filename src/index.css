@@ -93,26 +93,47 @@ textarea {
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: 100vh;
+  background-color: var(--surface-page, #FBFAF7);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(30, 63, 32, 0.07) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(183, 124, 67, 0.07) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(147, 199, 149, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+[data-theme="dark"] .app-container {
+  background-color: #0B0E0B;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(30, 63, 32, 0.35) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(183, 124, 67, 0.18) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(15, 32, 17, 0.4) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* 1. SIDEBAR NAVIGATION (Desktop) */
 .sidebar {
-  background-color: #1E3F20;
+  background: rgba(30, 63, 32, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: #FFFFFF;
   padding: 2.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
   position: sticky;
   top: 0;
   height: 100vh;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="dark"] .sidebar {
-  background-color: #0E2010 !important;
+  background: rgba(14, 32, 16, 0.92) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: #FFFFFF !important;
-  border-right: 1px solid #1E3F20 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
 }
 
 [data-theme="dark"] .sidebar .brand-name,
@@ -656,22 +677,25 @@ textarea {
 }
 
 .curriculum-card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background: var(--glass-surface, rgba(255, 255, 255, 0.75));
+  backdrop-filter: var(--glass-blur, blur(16px) saturate(180%));
+  -webkit-backdrop-filter: var(--glass-blur, blur(16px) saturate(180%));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.65));
+  border-radius: 20px;
   padding: 1.75rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--glass-shadow, 0 8px 32px 0 rgba(27, 32, 28, 0.08));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: var(--transition-smooth);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
   position: relative;
 }
 
 .curriculum-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-accent-sage);
+  transform: translateY(-5px) scale(1.01);
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.88));
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  border-color: rgba(255, 255, 255, 0.9);
 }
 
 .card-header-row {
