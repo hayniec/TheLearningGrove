@@ -747,7 +747,17 @@ export default function App() {
           setFormError("Incorrect email or password.");
           return;
         }
-        setCurrentUser(user);
+        let loggedUser = user;
+        if (isSiteOwner(user) || SITE_OWNER_EMAILS.includes((user.email || '').toLowerCase())) {
+          loggedUser = {
+            ...user,
+            role: user.role || 'Admin',
+            assignedRoles: user.assignedRoles || ['Admin', 'Moderator', 'Parent'],
+            isSiteOwner: true
+          };
+        }
+        setCurrentUser(loggedUser);
+        localStorage.setItem('grove_user', JSON.stringify(loggedUser));
         setShowAuthModal(false);
         setFormError(null);
         setAuthForm({ email: '', password: '', name: '' });
@@ -763,11 +773,13 @@ export default function App() {
           setFormError("Email is already registered.");
           return;
         }
+        const isOwner = SITE_OWNER_EMAILS.includes((authForm.email || '').toLowerCase());
         const user = await createUser({
           email: authForm.email,
           password: authForm.password,
           name: authForm.name,
-          role: 'Parent',
+          role: isOwner ? 'Admin' : 'Parent',
+          assignedRoles: isOwner ? ['Admin', 'Moderator', 'Parent'] : ['Parent'],
           parentId: null
         });
         setCurrentUser(user);
