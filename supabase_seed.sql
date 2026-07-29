@@ -1,23 +1,141 @@
 -- =========================================================================
--- THE LEARNING GROVE - DATABASE WIPE & RESEED SCRIPT
+-- THE LEARNING GROVE - COMPLETE DATABASE SETUP & SEED SCRIPT
 -- Copy and run this entire script in your Supabase SQL Editor:
 -- https://supabase.com/dashboard/project/amillvpnviaymjbfunep/sql
 -- =========================================================================
 
--- Step 1: Wipe all existing records from core tables
+-- Step 1: Create Tables if they don't exist yet
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  name TEXT,
+  role TEXT DEFAULT 'Parent',
+  "assignedRoles" TEXT[] DEFAULT ARRAY['Parent'],
+  "parentId" TEXT,
+  parentid TEXT,
+  "isSiteOwner" BOOLEAN DEFAULT false,
+  "isAdmin" BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS curricula (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  subject TEXT,
+  delivery TEXT,
+  grouping TEXT,
+  cost TEXT,
+  rating NUMERIC DEFAULT 5,
+  "favoritePart" TEXT,
+  "answerKey" TEXT,
+  methodology TEXT,
+  "onlineResources" BOOLEAN DEFAULT false,
+  "selfPaced" BOOLEAN DEFAULT false,
+  "classParticipation" BOOLEAN DEFAULT false,
+  worldview TEXT,
+  videos BOOLEAN DEFAULT false,
+  description TEXT,
+  "gradeLevels" TEXT,
+  "userId" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS curriculum_reviews (
+  id TEXT PRIMARY KEY,
+  "curriculumId" TEXT,
+  "userId" TEXT,
+  "userName" TEXT,
+  rating NUMERIC DEFAULT 5,
+  "favoritePart" TEXT,
+  description TEXT,
+  "createdAt" BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS fieldtrips (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  subject TEXT,
+  cost TEXT,
+  rating NUMERIC DEFAULT 5,
+  description TEXT,
+  location TEXT,
+  city TEXT,
+  state TEXT,
+  zip TEXT,
+  "websiteUrl" TEXT,
+  "gradeRecommendation" TEXT,
+  lat NUMERIC,
+  lng NUMERIC,
+  "userId" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS businessads (
+  id TEXT PRIMARY KEY,
+  owner TEXT,
+  "businessName" TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  "businessType" TEXT,
+  contact TEXT,
+  link TEXT,
+  "userId" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id TEXT PRIMARY KEY,
+  author TEXT,
+  role TEXT,
+  title TEXT NOT NULL,
+  category TEXT,
+  "categoryLabel" TEXT,
+  content TEXT,
+  tags TEXT[],
+  likes INT DEFAULT 0,
+  replies JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  "userId" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS communityposts (
+  id TEXT PRIMARY KEY,
+  author TEXT,
+  role TEXT,
+  title TEXT NOT NULL,
+  category TEXT,
+  "categoryLabel" TEXT,
+  content TEXT,
+  tags TEXT[],
+  likes INT DEFAULT 0,
+  replies JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  "userId" TEXT
+);
+
+CREATE TABLE IF NOT EXISTS resources (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  subject TEXT,
+  cost TEXT,
+  link TEXT,
+  description TEXT,
+  type TEXT,
+  approved BOOLEAN DEFAULT true,
+  "submittedBy" TEXT,
+  "submittedByEmail" TEXT,
+  "createdAt" BIGINT
+);
+
+-- Step 2: Clear all records safely
 DELETE FROM curriculum_reviews;
 DELETE FROM curricula;
 DELETE FROM fieldtrips;
 DELETE FROM businessads;
+DELETE FROM posts;
 DELETE FROM communityposts;
 DELETE FROM resources;
 DELETE FROM users;
 
--- =========================================================================
--- Step 2: Reseed USERS
--- Password hash for 'password123' (SHA-256): 
--- ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
--- =========================================================================
+-- Step 3: Reseed USERS
 INSERT INTO users (id, email, password, name, role, "assignedRoles", "parentId") VALUES
 ('admin-1', 'hostingsite.wanting320@passmail.net', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Site Owner', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
 ('admin-2', 'allison.haynie35@gmail.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Allison Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
@@ -25,9 +143,7 @@ INSERT INTO users (id, email, password, name, role, "assignedRoles", "parentId")
 ('parent-1', 'sarah.jenkins@example.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Sarah Jenkins', 'Parent', ARRAY['Parent'], NULL),
 ('parent-2', 'david.miller@example.com', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'David Miller', 'Parent', ARRAY['Parent'], NULL);
 
--- =========================================================================
--- Step 3: Reseed CURRICULA
--- =========================================================================
+-- Step 4: Reseed CURRICULA
 INSERT INTO curricula (
   id, name, subject, delivery, grouping, cost, rating, "favoritePart", "answerKey", 
   methodology, "onlineResources", "selfPaced", "classParticipation", worldview, 
@@ -129,34 +245,12 @@ INSERT INTO curricula (
   false,
   'neutral',
   false,
-  'A four-volume narrative history series covering Ancient Times through the Modern Age in a engaging chronological story format.',
+  'A four-volume narrative history series covering Ancient Times through the Modern Age in an engaging chronological story format.',
   '1st Grade,2nd Grade,3rd Grade,4th Grade,5th Grade,Middle School',
-  'admin-3'
-),
-(
-  'apologia-science',
-  'Apologia Exploring Creation Series',
-  'Science',
-  'textbook',
-  'mastery',
-  '$$',
-  4,
-  'In-depth immersion into specific topics like Botany, Zoology, and Astronomy with notebooking journals.',
-  'provided',
-  'charlotte-mason',
-  true,
-  true,
-  false,
-  'faith-based',
-  true,
-  'Conversational scientific textbooks written from a Christian worldview with abundant hands-on nature studies and experiments.',
-  'Elementary (K-5),Middle School,High School',
   'admin-3'
 );
 
--- =========================================================================
--- Step 4: Reseed CURRICULUM REVIEWS
--- =========================================================================
+-- Step 5: Reseed CURRICULUM REVIEWS
 INSERT INTO curriculum_reviews (id, "curriculumId", "userId", "userName", rating, "favoritePart", description, "createdAt") VALUES
 (
   'review-beast-1',
@@ -179,9 +273,7 @@ INSERT INTO curriculum_reviews (id, "curriculumId", "userId", "userName", rating
   1785285000000
 );
 
--- =========================================================================
--- Step 5: Reseed FIELD TRIPS
--- =========================================================================
+-- Step 6: Reseed FIELD TRIPS
 INSERT INTO fieldtrips (
   id, name, subject, cost, rating, description, location, city, state, zip, "websiteUrl", "gradeRecommendation", lat, lng, "userId"
 ) VALUES
@@ -235,28 +327,9 @@ INSERT INTO fieldtrips (
   33.7490,
   -84.3880,
   'admin-2'
-),
-(
-  'trip-chattahoochee-nature',
-  'Chattahoochee Nature Center',
-  'Science',
-  '$5 - $10',
-  5,
-  '127 acres of forest, wetland boardwalks, wildlife raptor exhibits, butterfly garden, and canoeing along the Chattahoochee River.',
-  '9135 Willeo Rd, Roswell, GA 30075',
-  'Roswell',
-  'GA',
-  '30075',
-  'https://chattnaturecenter.org',
-  'All Ages / Family Outing',
-  34.0095,
-  -84.3820,
-  'admin-3'
 );
 
--- =========================================================================
--- Step 6: Reseed BUSINESS ADS
--- =========================================================================
+-- Step 7: Reseed BUSINESS ADS
 INSERT INTO businessads (
   id, owner, "businessName", description, category, "businessType", contact, link, "userId"
 ) VALUES
@@ -281,22 +354,41 @@ INSERT INTO businessads (
   'music@thelearninggrove.org | (404) 555-0188',
   'https://thelearninggrove.org',
   'admin-3'
-),
-(
-  'ad-sweet-oak-bakery',
-  'Sarah Jenkins',
-  'Sweet Oak Cottage Bakery & Co-op Snacks',
-  'Freshly baked sourdough breads, allergy-friendly muffins, and customized birthday cakes baked fresh daily by a homeschool parent.',
-  'Cottage Industries',
-  'Cottage Industry',
-  'orders@sweetoakbakery.com',
-  'https://sweetoakbakery.example.com',
-  'parent-1'
 );
 
--- =========================================================================
--- Step 7: Reseed COMMUNITY POSTS
--- =========================================================================
+-- Step 8: Reseed POSTS & COMMUNITYPOSTS
+INSERT INTO posts (
+  id, author, role, title, category, "categoryLabel", content, tags, likes, replies, created_at, "userId"
+) VALUES
+(
+  'post-1',
+  'Sarah Jenkins',
+  'PARENT',
+  'What is your favorite 4th-grade math curriculum for visual learners?',
+  'curriculum-qa',
+  '📚 Curriculum Q&A',
+  'My son struggles with plain textbook worksheets and benefits from visual manipulatives and short video lessons. We have looked into Beast Academy and Math-U-See. What have you found works best for visual 4th graders?',
+  ARRAY['#Math', '#4thGrade', '#VisualLearners', '#BeastAcademy'],
+  12,
+  '[{"id":"rep-1","author":"Eric Haynie","content":"Beast Academy is fantastic for visual problem-solving! The comic guide books keep kids engaged, and the online practice provides instant feedback.","created_at":"2 hours ago"},{"id":"rep-2","author":"Allison Haynie","content":"Seconding Beast Academy! We also used Math-U-See blocks for tactile math concepts.","created_at":"1 hour ago"}]'::jsonb,
+  '2026-07-28T14:00:00Z',
+  'parent-1'
+),
+(
+  'post-2',
+  'David Miller',
+  'PARENT',
+  'North Atlanta Science Museum Group Field Trip — Discount Rates Available!',
+  'coops-trips',
+  '🌲 Co-ops & Field Trips',
+  'We are organizing a group visit to the Science Museum for 15+ homeschool families on June 15th. Group admission is $8/student (normally $18). Let us know if your family would like to join!',
+  ARRAY['#FieldTrips', '#Science', '#Atlanta', '#CoOp'],
+  18,
+  '[{"id":"rep-3","author":"Sarah Jenkins","content":"Count us in! I have two 4th graders.","created_at":"3 hours ago"}]'::jsonb,
+  '2026-07-26T16:30:00Z',
+  'parent-2'
+);
+
 INSERT INTO communityposts (
   id, author, role, title, category, "categoryLabel", content, tags, likes, replies, created_at, "userId"
 ) VALUES
@@ -329,9 +421,7 @@ INSERT INTO communityposts (
   'parent-2'
 );
 
--- =========================================================================
--- Step 8: Reseed RESOURCES
--- =========================================================================
+-- Step 9: Reseed RESOURCES
 INSERT INTO resources (
   id, name, subject, cost, link, description, type, approved, "submittedBy", "submittedByEmail", "createdAt"
 ) VALUES
@@ -362,4 +452,4 @@ INSERT INTO resources (
   1785210000000
 );
 
--- WIPE & RESEED COMPLETED SUCCESSFULLY!
+-- ALL TABLES CREATED & RESEEDED SUCCESSFULLY!
