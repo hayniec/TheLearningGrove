@@ -168,6 +168,7 @@ export default function App() {
   const [showModQueue, setShowModQueue] = useState(false);
 
   // Modal States
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [showCurriculumModal, setShowCurriculumModal] = useState(false);
   const [showTripModal, setShowTripModal] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
@@ -830,14 +831,70 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* LEFT SIDEBAR (morphs to bottom bar on mobile) */}
-      <aside className="sidebar">
+      {/* MOBILE TOP APPLICATION BAR (< 1024px) */}
+      <header className="mobile-top-header">
+        <button
+          className="mobile-hamburger-btn"
+          aria-label="Open Navigation Menu"
+          onClick={() => setIsMobileDrawerOpen(true)}
+        >
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+          </svg>
+        </button>
+
+        <div className="mobile-brand-title" onClick={() => { setActiveTab('explorer'); setIsMobileDrawerOpen(false); }}>
+          <svg className="brand-logo" viewBox="0 0 24 24" width="24" height="24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+          <span>The Learning Grove</span>
+        </div>
+
+        {currentUser ? (
+          <button 
+            className="mobile-avatar-btn"
+            onClick={() => setIsMobileDrawerOpen(true)}
+            aria-label="User Menu"
+          >
+            {currentUser.name.charAt(0).toUpperCase()}
+          </button>
+        ) : (
+          <button 
+            className="btn btn-sm btn-primary"
+            onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+          >
+            Sign In
+          </button>
+        )}
+      </header>
+
+      {/* MOBILE OFF-CANVAS DRAWER BACKDROP MASK */}
+      {isMobileDrawerOpen && (
+        <div 
+          className="mobile-drawer-backdrop"
+          onClick={() => setIsMobileDrawerOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR NAVIGATION (Permanent on Desktop >=1024px, Slide-Out Drawer on Mobile/Tablet <1024px) */}
+      <aside className={`sidebar ${isMobileDrawerOpen ? 'drawer-open' : ''}`}>
         <div>
-          <div className="brand-section">
-            <svg className="brand-logo" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-            </svg>
-            <span className="brand-name">The Learning Grove</span>
+          <div className="brand-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <svg className="brand-logo" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              </svg>
+              <span className="brand-name">The Learning Grove</span>
+            </div>
+
+            {/* Mobile Close Button inside Drawer */}
+            <button 
+              className="drawer-close-btn"
+              onClick={() => setIsMobileDrawerOpen(false)}
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
           </div>
 
           {/* USER PROFILE SECTION */}
@@ -856,7 +913,7 @@ export default function App() {
 
                 {currentUser.role === 'Parent' && (
                   <button 
-                    onClick={() => setShowFamilyModal(true)}
+                    onClick={() => { setShowFamilyModal(true); setIsMobileDrawerOpen(false); }}
                     style={{ 
                       width: '100%', 
                       fontSize: '0.75rem', 
@@ -891,6 +948,7 @@ export default function App() {
                         if (sub) {
                           localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
                           setCurrentUser(sub);
+                          setIsMobileDrawerOpen(false);
                         }
                       }}
                     >
@@ -908,6 +966,7 @@ export default function App() {
                       const parent = JSON.parse(localStorage.getItem('grove_parent_user'));
                       if (parent) {
                         setCurrentUser(parent);
+                        setIsMobileDrawerOpen(false);
                       }
                     }}
                     style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--brand, #1E3F20)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--brand, #1E3F20)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700', marginBottom: '0.4rem' }}
@@ -920,6 +979,7 @@ export default function App() {
                   onClick={() => {
                     localStorage.removeItem('grove_parent_user');
                     setCurrentUser(null);
+                    setIsMobileDrawerOpen(false);
                   }}
                   style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', border: '1.5px solid var(--danger, #A0201A)', background: 'var(--surface-card, #FFFFFF)', color: 'var(--danger, #A0201A)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
                 >
@@ -930,7 +990,7 @@ export default function App() {
               <div>
                 <p style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', margin: '0 0 0.5rem 0' }}>Join the grove to share, post and connect!</p>
                 <button 
-                  onClick={() => { setAuthMode('login'); setShowAuthModal(true); }}
+                  onClick={() => { setAuthMode('login'); setShowAuthModal(true); setIsMobileDrawerOpen(false); }}
                   style={{ width: '100%', fontSize: '0.75rem', padding: '5px 0', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
                 >
                   Sign In / Register
@@ -945,41 +1005,19 @@ export default function App() {
 
           <nav>
             <ul className="nav-list">
-              {/*
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('dashboard')}
-                >
-                  <DashboardIcon />
-                  <span>Dashboard</span>
-                </button>
-              </li>
-              */}
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'explorer' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('explorer')}
+                  onClick={() => { setActiveTab('explorer'); setIsMobileDrawerOpen(false); }}
                 >
                   <CurriculaIcon />
                   <span>Curricula</span>
                 </button>
               </li>
-              {/*
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'community' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('community')}
-                >
-                  <CommunityIcon />
-                  <span>Community Board</span>
-                </button>
-              </li>
-              */}
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'fieldtrips' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('fieldtrips')}
+                  onClick={() => { setActiveTab('fieldtrips'); setIsMobileDrawerOpen(false); }}
                 >
                   <PinIcon />
                   <span>Field Trips</span>
@@ -988,23 +1026,12 @@ export default function App() {
               <li className="nav-item">
                 <button 
                   className={`nav-link ${activeTab === 'businesses' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('businesses')}
+                  onClick={() => { setActiveTab('businesses'); setIsMobileDrawerOpen(false); }}
                 >
                   <BusinessIcon />
                   <span>Business Board</span>
                 </button>
               </li>
-              {/*
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'resources' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('resources')}
-                >
-                  <ResourcesIcon />
-                  <span>Resources</span>
-                </button>
-              </li>
-              */}
             </ul>
           </nav>
         </div>
