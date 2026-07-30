@@ -38,6 +38,7 @@ import {
   getAllUsers,
   updateUserRolePermissions,
   isSiteOwner,
+  isModeratorOrOwner,
   hashPassword
 } from './supabaseClient';
 
@@ -359,11 +360,14 @@ export default function App() {
     }
   };
 
-  // Curriculum Filtering Logic
+  // Filtered Curricula with null-safe property access
   const filteredCurricula = curricula.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    if (!item) return false;
+    const name = (item.name || '').toLowerCase();
+    const desc = (item.description || '').toLowerCase();
+    const q = (searchQuery || '').trim().toLowerCase();
+
+    const matchesSearch = q === '' || name.includes(q) || desc.includes(q);
     const matchesSubject = selectedSubjects.length === 0 || selectedSubjects.includes(item.subject);
     const matchesDelivery = selectedDeliveries.length === 0 || selectedDeliveries.includes(item.delivery);
     const matchesCost = selectedCosts.length === 0 || selectedCosts.includes(item.cost);
@@ -378,19 +382,21 @@ export default function App() {
     const matchesVideos = !featuresFilter.videos || item.videos;
 
     return matchesSearch && matchesSubject && matchesDelivery && matchesCost && 
-           matchesWorldview && matchesMethod && matchesOnlineRes && matchesSelfPaced &&            matchesParticipation && matchesVideos && matchesGrade;
+           matchesWorldview && matchesMethod && matchesOnlineRes && matchesSelfPaced && matchesParticipation && matchesVideos && matchesGrade;
   });
 
-  // Field Trip Filtering Logic
+  // Field Trip Filtering Logic with null-safe property access
   const filteredFieldTrips = fieldTrips.filter(item => {
-    const matchesSearch = tripSearchQuery.trim() === '' || 
-                          item.name.toLowerCase().includes(tripSearchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(tripSearchQuery.toLowerCase()) ||
-                          (item.location && item.location.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
-                          (item.city && item.city.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
-                          (item.state && item.state.toLowerCase().includes(tripSearchQuery.toLowerCase())) ||
-                          (item.zip && item.zip.toLowerCase().includes(tripSearchQuery.toLowerCase()));
+    if (!item) return false;
+    const name = (item.name || '').toLowerCase();
+    const desc = (item.description || '').toLowerCase();
+    const loc = (item.location || '').toLowerCase();
+    const city = (item.city || '').toLowerCase();
+    const state = (item.state || '').toLowerCase();
+    const zip = (item.zip || '').toLowerCase();
+    const q = (tripSearchQuery || '').trim().toLowerCase();
 
+    const matchesSearch = q === '' || name.includes(q) || desc.includes(q) || loc.includes(q) || city.includes(q) || state.includes(q) || zip.includes(q);
     const matchesSubject = tripSelectedSubject === 'All' || item.subject === tripSelectedSubject;
 
     let matchesGrade = true;
@@ -408,14 +414,16 @@ export default function App() {
     return matchesSearch && matchesSubject && matchesGrade;
   });
 
-  // Business Ads Filtering Logic
+  // Business Ads Filtering Logic with null-safe property access
   const filteredBusinessAds = businessAds.filter(item => {
-    const matchesSearch = adSearchQuery.trim() === '' || 
-                          item.businessName.toLowerCase().includes(adSearchQuery.toLowerCase()) || 
-                          item.description.toLowerCase().includes(adSearchQuery.toLowerCase()) ||
-                          item.owner.toLowerCase().includes(adSearchQuery.toLowerCase()) ||
-                          (item.businessType && item.businessType.toLowerCase().includes(adSearchQuery.toLowerCase()));
-                          
+    if (!item) return false;
+    const bName = (item.businessName || '').toLowerCase();
+    const desc = (item.description || '').toLowerCase();
+    const owner = (item.owner || '').toLowerCase();
+    const bType = (item.businessType || '').toLowerCase();
+    const q = (adSearchQuery || '').trim().toLowerCase();
+
+    const matchesSearch = q === '' || bName.includes(q) || desc.includes(q) || owner.includes(q) || bType.includes(q);
     const matchesCategory = selectedAdCategory === 'All' || item.category === selectedAdCategory;
     const matchesType = adSelectedType === 'All' || item.businessType === adSelectedType;
     
@@ -2327,13 +2335,22 @@ export default function App() {
                   🌿 Rules & Moderation
                 </button>
                 {(!currentUser || currentUser.role !== 'Student') && (
-                  <button 
-                    className="btn btn-primary" 
-                    onClick={() => setShowRequestModal(true)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                  >
-                    📝 Request a New Discussion
-                  </button>
+                  <>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => setShowNewPostModal(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <PlusIcon /> Create New Post
+                    </button>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => setShowRequestModal(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      📝 Request Topic
+                    </button>
+                  </>
                 )}
               </div>
             </header>

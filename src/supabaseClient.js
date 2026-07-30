@@ -239,6 +239,24 @@ export function isSiteOwner(user) {
   return false;
 }
 
+export function isModeratorOrOwner(user, resourceUserId = null) {
+  if (!user) return false;
+  if (isSiteOwner(user)) return true;
+
+  const role = (user.role || '').toLowerCase();
+  if (role === 'moderator' || role === 'admin' || role === 'owner') return true;
+
+  if (user.assignedRoles && user.assignedRoles.some(r => ['moderator', 'admin', 'siteowner', 'owner'].includes((r || '').toLowerCase()))) {
+    return true;
+  }
+
+  if (resourceUserId && (user.id === resourceUserId || user.email === resourceUserId)) {
+    return true;
+  }
+
+  return false;
+}
+
 // --- FIELD TRIPS ---
 export async function getFieldTrips() {
   const localTrips = JSON.parse(localStorage.getItem('grove_custom_fieldtrips') || '[]');
@@ -705,10 +723,18 @@ export async function createCommunityPost(post) {
     replies: [],
     created_at: new Date().toISOString()
   };
-  const { error } = await supabase.from('posts').insert([newPost]);
-  if (error) {
-    console.warn("createCommunityPost error, using local fallback object:", error);
-  }
+
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_posts') || '[]');
+  localStorage.setItem('grove_custom_posts', JSON.stringify([newPost, ...existingLocal]));
+
+  try {
+    await supabase.from('posts').insert([newPost]);
+  } catch (e) { console.warn("insert into posts error:", e); }
+
+  try {
+    await supabase.from('communityposts').insert([newPost]);
+  } catch (e) { console.warn("insert into communityposts error:", e); }
+
   return newPost;
 }
 
@@ -719,23 +745,46 @@ export async function addCommunityReply(postId, reply) {
     created_at: new Date().toISOString()
   };
 
-  const { data: existingPost } = await supabase
-    .from('posts')
-    .select('replies')
-    .eq('id', postId)
-    .maybeSingle();
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_posts') || '[]');
+  const updatedLocal = existingLocal.map(p => p.id === postId ? { ...p, replies: [...(p.replies || []), newReply] } : p);
+  localStorage.setItem('grove_custom_posts', JSON.stringify(updatedLocal));
 
-  const currentReplies = existingPost?.replies || [];
-  const updatedReplies = [...currentReplies, newReply];
+  try {
+    const { data: existingPost } = await supabase
+      .from('posts')
+      .select('replies')
+      .eq('id', postId)
+      .maybeSingle();
 
-  const { error } = await supabase
-    .from('posts')
-    .update({ replies: updatedReplies })
-    .eq('id', postId);
+    const currentReplies = existingPost?.replies || [];
+    const updatedReplies = [...currentReplies, newReply];
 
-  if (error) console.warn("addCommunityReply update warning:", error);
+    await supabase
+      .from('posts')
+      .update({ replies: updatedReplies })
+      .eq('id', postId);
+  } catch (e) { console.warn("update posts replies error:", e); }
+
+  try {
+    const { data: existingCommPost } = await supabase
+      .from('communityposts')
+      .select('replies')
+      .eq('id', postId)
+      .maybeSingle();
+
+    const currentReplies = existingCommPost?.replies || [];
+    const updatedReplies = [...currentReplies, newReply];
+
+    await supabase
+      .from('communityposts')
+      .update({ replies: updatedReplies })
+      .eq('id', postId);
+  } catch (e) { console.warn("update communityposts replies error:", e); }
+
   return newReply;
 }
+
+
 
 export async function likeCommunityPost(postId, currentLikes) {
   const updatedLikes = (currentLikes || 0) + 1;
