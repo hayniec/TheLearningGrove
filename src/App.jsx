@@ -35,6 +35,7 @@ import {
   deleteFieldTrip,
   deleteCommunityPost,
   deleteBusinessAd,
+  deleteCurriculumReview,
   getAllUsers,
   updateUserRolePermissions,
   isSiteOwner,
@@ -617,6 +618,40 @@ export default function App() {
     setShowCurriculumModal(true);
   };
 
+
+  const handleDeleteFieldTrip = async (tripId) => {
+    if (window.confirm("Are you sure you want to delete this field trip?")) {
+      await deleteFieldTrip(tripId);
+      setFieldTrips(prev => prev.filter(t => t.id !== tripId));
+      if (selectedTripDetail && selectedTripDetail.id === tripId) {
+        setSelectedTripDetail(null);
+      }
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (window.confirm("Are you sure you want to delete this community discussion post?")) {
+      await deleteCommunityPost(postId);
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      if (activePostDetail && activePostDetail.id === postId) {
+        setActivePostDetail(null);
+      }
+    }
+  };
+
+  const handleDeleteBusinessAd = async (adId) => {
+    if (window.confirm("Are you sure you want to delete this business listing?")) {
+      await deleteBusinessAd(adId);
+      setBusinessAds(prev => prev.filter(a => a.id !== adId));
+    }
+  };
+
+  const handleDeleteCurriculumReview = async (reviewId) => {
+    if (window.confirm("Are you sure you want to delete this review?")) {
+      await deleteCurriculumReview(reviewId);
+      setCurriculumReviews(prev => prev.filter(r => r.id !== reviewId));
+    }
+  };
 
   const handleTripSubmit = async (e) => {
     e.preventDefault();
@@ -3693,6 +3728,25 @@ export default function App() {
                       {rev.favoritePart && (
                         <div className="card-favorite-block" style={{ display: 'inline-block', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
                           <strong>Favorite Part:</strong> "{rev.favoritePart}"
+                        </div>
+                      )}
+
+                      {isModeratorOrOwner(currentUser, rev.userId) && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCurriculumReview(rev.id)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--danger, #A0201A)',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: '700'
+                            }}
+                          >
+                            🗑️ Delete Review
+                          </button>
                         </div>
                       )}
                     </div>

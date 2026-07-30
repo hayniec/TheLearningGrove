@@ -910,6 +910,16 @@ export async function deleteBusinessAd(adId) {
   return true;
 }
 
+export async function deleteCurriculumReview(reviewId) {
+  try {
+    const { error } = await supabase.from('curriculum_reviews').delete().eq('id', reviewId);
+    if (error) console.warn("deleteCurriculumReview DB warning:", error);
+  } catch (err) {
+    console.warn("deleteCurriculumReview exception:", err);
+  }
+  return true;
+}
+
 
 
 // --- ADMIN & SITE OWNER ROLE MANAGEMENT ---
