@@ -3706,33 +3706,33 @@ export default function App() {
                 )}
               </div>
 
-              {/* Reviews List */}
+              {/* Reviews List (508 Compliant High Contrast Cards) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {selectedReviews.length > 0 ? (
                   selectedReviews.map(rev => (
-                    <div key={rev.id} style={{ borderBottom: '1px solid var(--color-border-light)', paddingBottom: '1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                    <div key={rev.id} className="review-card-item">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem' }}>
                         <Rating value={rev.rating} />
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--ink, #1B201C)' }}>
                           by {rev.userName}
                         </span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginLeft: 'auto' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-muted, #556056)', marginLeft: 'auto' }}>
                           {new Date(rev.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       
-                      <p style={{ fontSize: '0.9rem', color: 'var(--ink)', margin: '0.25rem 0 0.75rem 0', lineHeight: 1.5 }}>
+                      <p style={{ fontSize: '0.95rem', color: 'var(--ink, #1B201C)', margin: '0.35rem 0 0.75rem 0', lineHeight: 1.6, fontWeight: 500 }}>
                         {rev.description}
                       </p>
 
                       {rev.favoritePart && (
-                        <div className="card-favorite-block" style={{ display: 'inline-block', padding: '0.5rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem' }}>
+                        <div className="card-favorite-block">
                           <strong>Favorite Part:</strong> "{rev.favoritePart}"
                         </div>
                       )}
 
                       {isModeratorOrOwner(currentUser, rev.userId) && (
-                        <div style={{ marginTop: '0.5rem' }}>
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--line-subtle, #DEE3DD)' }}>
                           <button
                             type="button"
                             onClick={() => handleDeleteCurriculumReview(rev.id)}
@@ -3741,7 +3741,7 @@ export default function App() {
                               border: 'none',
                               color: 'var(--danger, #A0201A)',
                               cursor: 'pointer',
-                              fontSize: '0.75rem',
+                              fontSize: '0.8rem',
                               fontWeight: '700'
                             }}
                           >
@@ -3752,9 +3752,11 @@ export default function App() {
                     </div>
                   ))
                 ) : (
-                  <p style={{ color: 'var(--ink-muted)', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center', padding: '1rem 0' }}>
-                    No reviews yet. Be the first to review this curriculum!
-                  </p>
+                  <div className="review-card-item" style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
+                    <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>
+                      No reviews yet. Be the first to review this curriculum!
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
