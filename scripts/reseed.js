@@ -21,11 +21,11 @@ async function reseed() {
   // 2. Insert Users
   console.log("Inserting default users...");
   const { error: userErr } = await supabase.from('users').upsert([
-    { id: 'admin-1', email: 'hostingsite.wanting320@passmail.net', password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', name: 'Site Owner', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
-    { id: 'admin-2', email: 'allison.haynie35@gmail.com', password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', name: 'Allison Haynie', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
-    { id: 'admin-3', email: 'erick.haynie@gmail.com', password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', name: 'Eric Haynie', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
-    { id: 'parent-1', email: 'sarah.jenkins@example.com', password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', name: 'Sarah Jenkins', role: 'Parent', assignedRoles: ['Parent'] },
-    { id: 'parent-2', email: 'david.miller@example.com', password: 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', name: 'David Miller', role: 'Parent', assignedRoles: ['Parent'] }
+    { id: 'admin-1', email: 'hostingsite.wanting320@passmail.net', password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', name: 'Site Owner', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
+    { id: 'admin-2', email: 'allison.haynie35@gmail.com', password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', name: 'Allison Haynie', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
+    { id: 'admin-3', email: 'erick.haynie@gmail.com', password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', name: 'Eric Haynie', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
+    { id: 'parent-1', email: 'sarah.jenkins@example.com', password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', name: 'Sarah Jenkins', role: 'Parent', assignedRoles: ['Parent'] },
+    { id: 'parent-2', email: 'david.miller@example.com', password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', name: 'David Miller', role: 'Parent', assignedRoles: ['Parent'] }
   ]);
   if (userErr) console.warn("User upsert note:", userErr.message);
 
