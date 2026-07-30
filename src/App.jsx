@@ -87,18 +87,22 @@ const BusinessIcon = () => (
 function ThemeToggle() {
   const [theme, setTheme] = useState(() => localStorage.getItem('grove_theme') || 'system');
 
+  const applyTheme = (targetTheme) => {
+    let resolved = targetTheme;
+    if (targetTheme === 'system') {
+      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', resolved);
+  };
+
   const updateTheme = (newTheme) => {
     setTheme(newTheme);
     localStorage.setItem('grove_theme', newTheme);
-    
-    let resolvedTheme = newTheme;
-    if (newTheme === 'system') {
-      resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    applyTheme(newTheme);
   };
 
   useEffect(() => {
+    applyTheme(theme);
     if (theme === 'system') {
       const media = window.matchMedia('(prefers-color-scheme: dark)');
       const listener = (e) => {
@@ -113,7 +117,7 @@ function ThemeToggle() {
     <fieldset className="theme-toggle-group" style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
       <legend style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '0.25rem' }}>Theme Mode</legend>
       <div style={{ display: 'flex', background: 'var(--color-bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
-        {['light', 'dark', 'system'].map((t) => (
+        {['system', 'light', 'dark'].map((t) => (
           <label
             key={t}
             style={{
@@ -260,7 +264,7 @@ export default function App() {
     name: '', subject: 'Math', delivery: 'online', grouping: 'grade',
     cost: '$$', rating: 5, favoritePart: '', answerKey: 'provided',
     methodology: 'spiral', onlineResources: false, selfPaced: false,
-    classParticipation: false, worldview: 'secular', videos: false, description: ''
+    classParticipation: false, worldview: 'secular', videos: false, description: '', websiteUrl: ''
   });
   const [newTrip, setNewTrip] = useState({
     name: '', subject: 'Science', cost: 'Free Admission', rating: 5, description: '',
@@ -583,7 +587,7 @@ export default function App() {
         name: '', subject: 'Math', delivery: 'online', grouping: 'grade',
         cost: '$$', rating: 5, favoritePart: '', answerKey: 'provided',
         methodology: 'spiral', onlineResources: false, selfPaced: false,
-        classParticipation: false, worldview: 'secular', videos: false, description: ''
+        classParticipation: false, worldview: 'secular', videos: false, description: '', websiteUrl: ''
       });
       setGradeLevelsSelected([]);
       setReviewingCurriculumId(null);
@@ -612,7 +616,8 @@ export default function App() {
       classParticipation: !!curriculumDetail.classParticipation,
       worldview: curriculumDetail.worldview,
       videos: !!curriculumDetail.videos,
-      description: ''
+      description: '',
+      websiteUrl: curriculumDetail.websiteUrl || ''
     });
     setGradeLevelsSelected(curriculumDetail.gradeLevels || []);
     setShowCurriculumModal(true);
@@ -1133,14 +1138,11 @@ export default function App() {
         </button>
 
         <div className="mobile-brand-title" onClick={() => { setActiveTab('explorer'); setIsMobileDrawerOpen(false); }}>
-          <svg className="brand-logo" viewBox="0 0 48 48" width="36" height="36" style={{ minWidth: '32px', minHeight: '32px' }}>
-            <circle cx="24" cy="24" r="22" fill="#2E5A31" fillOpacity="0.25" stroke="#B77C43" strokeWidth="1.5" />
-            <path d="M24 7C18.5 7 14 10.5 14 15C11.8 15 9.5 17.2 9.5 19.5C9.5 22.8 12.2 25 15 25C15 27.8 17.2 30 20.5 30H27.5C30.8 30 33 27.8 33 25C35.8 25 38.5 22.8 38.5 19.5C38.5 17.2 36.2 15 34 15C34 10.5 29.5 7 24 7Z" fill="#3D7A40" />
-            <path d="M24 9.5C19.8 9.5 16.2 12.2 16.2 15.8C14.4 15.8 12.8 17.5 12.8 19.5C12.8 22.2 15 23.8 17.5 23.8C17.5 26.2 19.5 28 22.2 28H25.8C28.5 28 30.5 26.2 30.5 23.8C33 23.8 35.2 22.2 35.2 19.5C35.2 17.5 33.6 15.8 31.8 15.8C31.8 12.2 28.2 9.5 24 9.5Z" fill="#589B5B" />
-            <path d="M21.5 27V38C21.5 39 19.5 40 17 41M26.5 27V38C26.5 39 28.5 40 31 41M24 25V39" stroke="#B77C43" strokeWidth="2.8" strokeLinecap="round" />
-            <circle cx="24" cy="14" r="2.5" fill="#F3BF64" />
-          </svg>
-          <span>The Learning Grove</span>
+          <img 
+            src="/logo-emblem.png" 
+            alt="The Learning Grove" 
+            style={{ height: '42px', width: 'auto', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }} 
+          />
         </div>
 
         {currentUser ? (
@@ -1173,15 +1175,15 @@ export default function App() {
       <aside className={`sidebar ${isMobileDrawerOpen ? 'drawer-open' : ''}`}>
         <div>
           <div className="brand-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <svg className="brand-logo" viewBox="0 0 48 48" width="42" height="42" style={{ minWidth: '40px', minHeight: '40px' }}>
-                <circle cx="24" cy="24" r="22" fill="#2E5A31" fillOpacity="0.25" stroke="#B77C43" strokeWidth="1.5" />
-                <path d="M24 7C18.5 7 14 10.5 14 15C11.8 15 9.5 17.2 9.5 19.5C9.5 22.8 12.2 25 15 25C15 27.8 17.2 30 20.5 30H27.5C30.8 30 33 27.8 33 25C35.8 25 38.5 22.8 38.5 19.5C38.5 17.2 36.2 15 34 15C34 10.5 29.5 7 24 7Z" fill="#3D7A40" />
-                <path d="M24 9.5C19.8 9.5 16.2 12.2 16.2 15.8C14.4 15.8 12.8 17.5 12.8 19.5C12.8 22.2 15 23.8 17.5 23.8C17.5 26.2 19.5 28 22.2 28H25.8C28.5 28 30.5 26.2 30.5 23.8C33 23.8 35.2 22.2 35.2 19.5C35.2 17.5 33.6 15.8 31.8 15.8C31.8 12.2 28.2 9.5 24 9.5Z" fill="#589B5B" />
-                <path d="M21.5 27V38C21.5 39 19.5 40 17 41M26.5 27V38C26.5 39 28.5 40 31 41M24 25V39" stroke="#B77C43" strokeWidth="2.8" strokeLinecap="round" />
-                <circle cx="24" cy="14" r="2.5" fill="#F3BF64" />
-              </svg>
-              <span className="brand-name">The Learning Grove</span>
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+              onClick={() => { setActiveTab('home'); setIsMobileDrawerOpen(false); }}
+            >
+              <img 
+                src="/logo.png" 
+                alt="The Learning Grove" 
+                style={{ maxHeight: '60px', maxWidth: '195px', objectFit: 'contain' }} 
+              />
             </div>
 
             {/* Mobile Close Button inside Drawer */}
@@ -1622,44 +1624,52 @@ export default function App() {
         {/* ======================================= */}
         {activeTab === 'home' && (
           <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-            {/* HERO BANNER SECTION */}
+            {/* HERO BANNER SECTION (Redesigned Around Official Brand Logo) */}
             <header style={{ 
-              background: 'linear-gradient(135deg, var(--brand, #1E3F20) 0%, #2A5A2E 100%)', 
+              background: 'linear-gradient(135deg, #0F2537 0%, #183B59 50%, #1B4D3E 100%)', 
               color: '#FFFFFF',
-              borderRadius: '16px',
+              borderRadius: '20px',
               padding: '2.5rem 2rem',
               marginBottom: '2rem',
-              boxShadow: '0 8px 24px rgba(30,63,32,0.15)',
+              boxShadow: '0 12px 32px rgba(15, 37, 55, 0.25)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '2rem',
+              flexWrap: 'wrap-reverse',
+              border: '1px solid rgba(197, 160, 89, 0.35)'
             }}>
-              <div style={{ position: 'relative', zIndex: 2, maxWidth: '720px' }}>
+              <div style={{ position: 'relative', zIndex: 2, flex: '1 1 500px', maxWidth: '680px' }}>
                 <span style={{ 
-                  background: 'rgba(255,255,255,0.18)', 
-                  padding: '4px 12px', 
+                  background: 'rgba(197, 160, 89, 0.22)', 
+                  color: '#F5E2A8',
+                  border: '1px solid rgba(197, 160, 89, 0.4)',
+                  padding: '4px 14px', 
                   borderRadius: '20px', 
                   fontSize: '0.8rem', 
                   fontWeight: '700', 
                   letterSpacing: '0.5px',
                   display: 'inline-block',
-                  marginBottom: '0.75rem' 
+                  marginBottom: '1rem' 
                 }}>
-                  🌿 HOMESCHOOL FAMILY NETWORK
+                  ✨ HOMESCHOOL FAMILY NETWORK
                 </span>
 
-                <h1 style={{ fontSize: '2.2rem', fontWeight: '800', lineHeight: '1.25', margin: '0 0 1rem 0', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                <h1 style={{ fontSize: '2.4rem', fontWeight: '800', lineHeight: '1.2', margin: '0 0 1rem 0', color: '#FFFFFF' }}>
                   Welcome to The Learning Grove
                 </h1>
 
-                <p style={{ fontSize: '1.05rem', lineHeight: '1.6', color: '#E4EDE4', marginBottom: '1.75rem' }}>
-                  A supportive, parent-driven community for homeschooling families. Discover honest curriculum reviews, join moderated discussion channels, and coordinate local co-op field trips.
+                <p style={{ fontSize: '1.05rem', lineHeight: '1.6', color: '#E3EBF5', marginBottom: '1.75rem' }}>
+                  A supportive, parent-driven community for homeschooling families. Discover authentic curriculum reviews, engage in moderated discussion channels, and coordinate local co-op field trips.
                 </p>
 
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <button 
                     className="btn" 
                     onClick={() => setActiveTab('explorer')}
-                    style={{ background: '#FFFFFF', color: 'var(--brand, #1E3F20)', fontWeight: '700', padding: '0.65rem 1.25rem', border: 'none' }}
+                    style={{ background: '#C5A059', color: '#0F2537', fontWeight: '800', padding: '0.7rem 1.35rem', border: 'none', borderRadius: '8px' }}
                   >
                     📚 Explore Curricula
                   </button>
@@ -1667,7 +1677,7 @@ export default function App() {
                   <button 
                     className="btn" 
                     onClick={() => setActiveTab('community')}
-                    style={{ background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', fontWeight: '700', padding: '0.65rem 1.25rem', border: '1px solid rgba(255,255,255,0.4)' }}
+                    style={{ background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontWeight: '700', padding: '0.7rem 1.35rem', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px' }}
                   >
                     💬 Discussion Board
                   </button>
@@ -1675,10 +1685,27 @@ export default function App() {
                   <button 
                     className="btn" 
                     onClick={() => setActiveTab('fieldtrips')}
-                    style={{ background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', fontWeight: '700', padding: '0.65rem 1.25rem', border: '1px solid rgba(255,255,255,0.4)' }}
+                    style={{ background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', fontWeight: '700', padding: '0.7rem 1.35rem', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px' }}
                   >
                     🌲 View Field Trips
                   </button>
+                </div>
+              </div>
+
+              {/* Brand Logo Hero Card */}
+              <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ 
+                  background: 'rgba(255, 255, 255, 0.96)', 
+                  padding: '1.25rem 1.5rem', 
+                  borderRadius: '20px', 
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+                  border: '2px solid #C5A059'
+                }}>
+                  <img 
+                    src="/logo.png" 
+                    alt="The Learning Grove Logo" 
+                    style={{ maxHeight: '175px', maxWidth: '240px', objectFit: 'contain' }} 
+                  />
                 </div>
               </div>
             </header>
@@ -2992,9 +3019,16 @@ export default function App() {
               onChange={(e) => setNewCurriculum(prev => ({...prev, favoritePart: e.target.value}))}
             />
           </Field>
-          <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '-0.75rem', marginBottom: '1rem' }}>
-            {(newCurriculum.favoritePart || '').length} / 500 characters
-          </div>
+
+          <Field id="curr-website" label="Website or Purchase Link (Optional)" hint="Direct link to where families can learn more or purchase this curriculum (e.g. https://beastacademy.com)">
+            <input
+              type="url"
+              className="form-control"
+              placeholder="https://example.com/purchase-link"
+              value={newCurriculum.websiteUrl || ''}
+              onChange={(e) => setNewCurriculum(prev => ({...prev, websiteUrl: e.target.value}))}
+            />
+          </Field>
         </form>
       </GroveDialog>
 
@@ -3728,6 +3762,29 @@ export default function App() {
                       {rev.favoritePart && (
                         <div className="card-favorite-block">
                           <strong>Favorite Part:</strong> "{rev.favoritePart}"
+                        </div>
+                      )}
+
+                      {rev.websiteUrl && (
+                        <div style={{ marginTop: '0.65rem' }}>
+                          <a
+                            href={rev.websiteUrl.startsWith('http') ? rev.websiteUrl : `https://${rev.websiteUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-secondary btn-sm"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              fontSize: '0.8rem',
+                              padding: '0.4rem 0.85rem',
+                              textDecoration: 'none',
+                              borderRadius: '6px',
+                              fontWeight: '700'
+                            }}
+                          >
+                            🔗 Visit Website / Purchase Link <ExternalLinkIcon />
+                          </a>
                         </div>
                       )}
 

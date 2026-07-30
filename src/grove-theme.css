@@ -23,106 +23,101 @@
   color-scheme: light;
 
   /* Surfaces */
-  --surface-page:      #FBFAF7;  /* warm ivory paper */
+  --surface-page:      #F4F7FA;
   --surface-card:      #FFFFFF;
-  --surface-raised:    #F3F1EC;  /* filter rails, table headers */
-  --surface-sunken:    #F0EEE8;  /* input wells */
+  --surface-raised:    #EBF1F7;
+  --surface-sunken:    #E3EBF5;
 
   /* Text — "ink" */
-  --ink:               #1B201C;  /* 15.8:1 on page */
-  --ink-muted:         #556056;  /*  6.3:1 on page — safe for 14px */
+  --ink:               #0D1C2A;
+  --ink-muted:         #4A5B6C;
   --ink-inverse:       #FFFFFF;
 
-  /* Brand */
-  --brand:             #1E3F20;  /* forest — 11.3:1 on page */
-  --brand-hover:       #2A5A2D;
-  --brand-fill:        #1E3F20;  /* button background */
-  --brand-on-fill:     #FFFFFF;  /* 11.8:1 */
-  --brand-wash:        #E4EDE4;  /* chip / active-row background */
-  --brand-wash-ink:    #1E3F20;  /*  9.8:1 on wash */
+  /* Brand (Navy Blue & Rich Teal from Logo) */
+  --brand:             #0F2537;
+  --brand-hover:       #183B59;
+  --brand-fill:        #0F2537;
+  --brand-on-fill:     #FFFFFF;
+  --brand-wash:        #E8EFF6;
+  --brand-wash-ink:    #0F2537;
 
-  /* Accent (oak) — SPLIT into a text-safe tone and a decorative tone */
-  --oak-text:          #8A5320;  /*  6.3:1 — use for any oak-coloured TEXT */
-  --oak-decor:         #B77C43;  /* use ONLY for 4px+ rules, fills, icons ≥24px */
-  --oak-wash:          #F6EADC;
-  --oak-wash-ink:      #6E4318;  /*  7.2:1 on wash */
+  /* Accent (Gold from Logo) */
+  --oak-text:          #997327;
+  --oak-decor:         #C5A059;
+  --oak-wash:          #FBF6EB;
+  --oak-wash-ink:      #664D18;
 
   /* Status */
-  --star:              #A85F06;  /*  4.9:1 — meets 3:1 graphic minimum */
-  --star-empty:        #B9B4A9;  /*  2.5:1 vs white is fine: paired with filled */
-  --danger:            #A0201A;  /*  7.7:1 */
+  --star:              #D4AF37;
+  --star-empty:        #B9C4D0;
+  --danger:            #A0201A;
   --danger-wash:       #FBE9E7;
-  --success:           #1F6127;  /*  7.5:1 */
-  --success-wash:      #E4F0E5;
+  --success:           #1B4D3E;
+  --success-wash:      #E4F2ED;
 
   /* Glassmorphism Tokens (Light Glass) */
-  --glass-surface:        rgba(255, 255, 255, 0.75);
-  --glass-surface-hover:  rgba(255, 255, 255, 0.88);
-  --glass-border:         rgba(255, 255, 255, 0.65);
-  --glass-border-subtle:  rgba(30, 63, 32, 0.14);
+  --glass-surface:        rgba(255, 255, 255, 0.85);
+  --glass-surface-hover:  rgba(255, 255, 255, 0.95);
+  --glass-border:         rgba(255, 255, 255, 0.75);
+  --glass-border-subtle:  rgba(15, 37, 55, 0.12);
   --glass-blur:           blur(16px) saturate(180%);
-  --glass-shadow:         0 8px 32px 0 rgba(27, 32, 28, 0.08);
+  --glass-shadow:         0 8px 32px 0 rgba(15, 37, 55, 0.08);
 
   /* Lines */
-  --line-subtle:       #DEE3DD;  /* decorative separators only */
-  --line-strong:       #6D7A6D;  /*  4.5:1 — REQUIRED for input/control borders */
+  --line-subtle:       #D8E2EC;
+  --line-strong:       #6C8095;
 
-  /* Focus — dual ring so it stays visible on any fill */
-  --focus-ring:        #1E3F20;
-  --focus-halo:        #FBFAF7;
+  /* Focus */
+  --focus-ring:        #0F2537;
+  --focus-halo:        #F4F7FA;
 
   /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(27, 32, 28, .06), 0 2px 8px rgba(27, 32, 28, .05);
-  --shadow-md: 0 2px 4px rgba(27, 32, 28, .07), 0 8px 24px rgba(27, 32, 28, .08);
-  --shadow-lg: 0 4px 8px rgba(27, 32, 28, .08), 0 16px 40px rgba(27, 32, 28, .12);
+  --shadow-sm: 0 1px 2px rgba(15, 37, 55, .06), 0 2px 8px rgba(15, 37, 55, .05);
+  --shadow-md: 0 2px 4px rgba(15, 37, 55, .07), 0 8px 24px rgba(15, 37, 55, .08);
+  --shadow-lg: 0 4px 8px rgba(15, 37, 55, .08), 0 16px 40px rgba(15, 37, 55, .12);
 }
 
-/* --------------------------------------------------------------------------
-   2. DARK THEME TOKENS
-   Not an inversion. Forest green is unreadable on dark, so the brand role
-   shifts to a light sage and oak warms up. Surfaces stay green-black, not
-   pure black — pure black on OLED causes smearing during scroll.
-   -------------------------------------------------------------------------- */
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --surface-page:      #101410;
-  --surface-card:      #1A211A;
-  --surface-raised:    #232B22;
-  --surface-sunken:    #0C0F0C;
+  --surface-page:      #080E14;
+  --surface-card:      #101A24;
+  --surface-raised:    #182634;
+  --surface-sunken:    #0B131C;
 
-  --ink:               #E7EDE6;  /* 13.8:1 on card */
-  --ink-muted:         #A7B3A6;  /*  7.6:1 on card */
-  --ink-inverse:       #0E1410;
+  --ink:               #EBF2FA;
+  --ink-muted:         #9CB0C4;
+  --ink-inverse:       #0A131C;
 
   /* Glassmorphism Tokens (Dark Glass) */
-  --glass-surface:        rgba(20, 28, 20, 0.78);
-  --glass-surface-hover:  rgba(28, 38, 28, 0.88);
+  --glass-surface:        rgba(16, 26, 36, 0.85);
+  --glass-surface-hover:  rgba(24, 38, 52, 0.92);
   --glass-border:         rgba(255, 255, 255, 0.14);
-  --glass-border-subtle:  rgba(147, 199, 149, 0.18);
+  --glass-border-subtle:  rgba(197, 160, 89, 0.22);
   --glass-blur:           blur(16px) saturate(180%);
-  --glass-shadow:         0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  --glass-shadow:         0 8px 32px 0 rgba(0, 0, 0, 0.5);
 
-  --brand:             #93C795;  /*  8.5:1 on card */
-  --brand-hover:       #AEDBB0;
-  --brand-fill:        #93C795;
-  --brand-on-fill:     #0E1410;  /*  9.6:1 */
-  --brand-wash:        #263326;
-  --brand-wash-ink:    #C6E3C6;  /*  9.6:1 on wash */
+  --brand:             #5E9AD2;
+  --brand-hover:       #7BB0E0;
+  --brand-fill:        #5E9AD2;
+  --brand-on-fill:     #0A131C;
+  --brand-wash:        #182E42;
+  --brand-wash-ink:    #C8E0F4;
 
-  --oak-text:          #E0A96A;  /*  7.9:1 */
-  --oak-decor:         #C98D4E;
-  --oak-wash:          #33271A;
-  --oak-wash-ink:      #EDC796;
+  --oak-text:          #E5C158;
+  --oak-decor:         #C5A059;
+  --oak-wash:          #332712;
+  --oak-wash-ink:      #F5E2A8;
 
-  --star:              #F0B75E;  /*  9.1:1 */
-  --star-empty:        #4E5A4D;
-  --danger:            #F2A9A2;  /*  8.6:1 */
+  --star:              #F0B75E;
+  --star-empty:        #455668;
+  --danger:            #F2A9A2;
   --danger-wash:       #37201E;
-  --success:           #82CE8A;  /*  8.7:1 */
-  --success-wash:      #1B2E1D;
+  --success:           #52B795;
+  --success-wash:      #122B22;
 
-  --line-subtle:       #2E372D;
+  --line-subtle:       #1E2E3E;
+  --line-strong:       #6C8095;
   --line-strong:       #768476;  /*  4.2:1 */
 
   --focus-ring:        #F0B75E;  /* amber reads on both green fills and page */

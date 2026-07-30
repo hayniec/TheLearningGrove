@@ -140,6 +140,7 @@ export async function addCurriculum(item) {
     rating,
     favoritePart: item.favoritePart || '',
     description: item.description || '',
+    websiteUrl: item.websiteUrl || item.purchaseUrl || '',
     createdAt: Date.now()
   };
 
@@ -169,6 +170,7 @@ export async function addCurriculumReview(curriculumId, reviewItem) {
     rating: Number(reviewItem.rating) || 5,
     favoritePart: reviewItem.favoritePart || '',
     description: reviewItem.description || '',
+    websiteUrl: reviewItem.websiteUrl || reviewItem.purchaseUrl || '',
     createdAt: Date.now()
   };
 

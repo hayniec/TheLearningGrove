@@ -58,6 +58,7 @@ CREATE TABLE curriculum_reviews (
   rating NUMERIC DEFAULT 5,
   "favoritePart" TEXT,
   description TEXT,
+  "websiteUrl" TEXT,
   "createdAt" BIGINT
 );
 

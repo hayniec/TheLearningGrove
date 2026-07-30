@@ -1,28 +1,23 @@
 /* Custom CSS Design System - The Learning Grove */
 
 :root {
-  /* Curated HSL Forest Palette */
-  --color-primary: #1e3f20;
-  /* HSL 125, 36%, 18% - Deep Moss/Forest */
-  --color-primary-rgb: 30, 63, 32;
-  --color-accent-sage: #8ca88e;
-  /* HSL 125, 15%, 60% - Warm Sage */
-  --color-accent-sage-light: #f0f4f0;
-  --color-accent-oak: #b77c43;
-  /* HSL 30, 46%, 49% - Rich Gold/Timber */
-  --color-accent-oak-light: #f9f2eb;
-  --color-bg: #faf8f5;
-  /* Soft Ivory Paper */
+  /* Logo-Inspired Palette: Deep Navy (#0F2537), Rich Teal (#1B4D3E), Metallic Gold (#C5A059) */
+  --color-primary: #0F2537;
+  --color-primary-rgb: 15, 37, 55;
+  --color-accent-teal: #1B4D3E;
+  --color-accent-sage: #2C6E49;
+  --color-accent-sage-light: #EBF2EE;
+  --color-accent-oak: #C5A059;
+  --color-accent-oak-light: #F9F4EA;
+  --color-bg: #F4F7FA;
   --color-card: #ffffff;
-  --color-text-dark: #2d312e;
-  /* Charcoal Wood */
-  --color-text-muted: #6b726d;
-  --color-text-light: #ecefea;
-  /* Soft Linen */
-  --color-border: #e6ebe6;
-  --color-star: #e29547;
-  --color-danger: #a94442;
-  --color-danger-bg: #f2dede;
+  --color-text-dark: #0D1C2A;
+  --color-text-muted: #4A5B6C;
+  --color-text-light: #ECEFEA;
+  --color-border: #D8E2EC;
+  --color-star: #D4AF37;
+  --color-danger: #A0201A;
+  --color-danger-bg: #FBE9E7;
 
   /* Typography */
   --font-heading: 'Outfit', sans-serif;
