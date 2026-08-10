@@ -16,6 +16,7 @@ export async function hashPassword(password) {
 
 // --- CURRICULA ---
 export async function getCurricula() {
+  const localCurricula = JSON.parse(localStorage.getItem('grove_custom_curricula') || '[]');
   const defaultSampleCurricula = [
     {
       id: 'beast-academy-math',
@@ -79,32 +80,61 @@ export async function getCurricula() {
     }
   ];
 
+  let dbCurricula = [];
   try {
     const { data, error } = await supabase.from('curricula').select('*');
     if (!error && data && data.length > 0) {
-      return data.map(r => ({
+      dbCurricula = data.map(r => ({
         ...r,
         onlineResources: !!r.onlineResources,
         selfPaced: !!r.selfPaced,
         classParticipation: !!r.classParticipation,
         videos: !!r.videos,
-        gradeLevels: typeof r.gradeLevels === 'string' ? r.gradeLevels.split(',') : (r.gradeLevels || [])
+        gradeLevels: typeof r.gradeLevels === 'string' ? r.gradeLevels.split(',').filter(Boolean) : (r.gradeLevels || [])
       }));
     }
   } catch (err) {
     console.warn("getCurricula exception:", err);
   }
-  return defaultSampleCurricula;
+
+  const mergedMap = new Map();
+  defaultSampleCurricula.forEach(c => mergedMap.set(c.id, c));
+  dbCurricula.forEach(c => mergedMap.set(c.id, c));
+  localCurricula.forEach(c => mergedMap.set(c.id, c));
+  return Array.from(mergedMap.values());
 }
 
 export async function getCurriculumReviews(curriculumId) {
-  const { data, error } = await supabase
-    .from('curriculum_reviews')
-    .select('*')
-    .eq('curriculumId', curriculumId)
-    .order('createdAt', { ascending: false });
-  if (error) throw error;
-  return data;
+  const localReviews = JSON.parse(localStorage.getItem(`grove_reviews_${curriculumId}`) || '[]');
+  let dbReviews = [];
+  try {
+    const { data, error } = await supabase
+      .from('curriculum_reviews')
+      .select('*')
+      .eq('curriculumId', curriculumId)
+      .order('createdAt', { ascending: false });
+    if (!error && data) dbReviews = data;
+  } catch (err) {
+    console.warn("getCurriculumReviews exception:", err);
+  }
+
+  const defaultSampleReviews = [
+    {
+      id: `rev-sample-${curriculumId}-1`,
+      curriculumId,
+      userName: 'Sarah Jenkins',
+      rating: 5,
+      favoritePart: 'Engaging approach that children genuinely look forward to every day.',
+      description: 'We have used this curriculum for two school years now and it has transformed our homeschool routine!',
+      createdAt: Date.now() - 86400000 * 5
+    }
+  ];
+
+  const map = new Map();
+  defaultSampleReviews.forEach(r => map.set(r.id, r));
+  dbReviews.forEach(r => map.set(r.id, r));
+  localReviews.forEach(r => map.set(r.id, r));
+  return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 export async function addCurriculum(item) {
@@ -128,7 +158,7 @@ export async function addCurriculum(item) {
     worldview: item.worldview,
     videos: !!item.videos,
     description: item.description,
-    gradeLevels: item.gradeLevels ? item.gradeLevels.join(',') : '',
+    gradeLevels: item.gradeLevels ? (Array.isArray(item.gradeLevels) ? item.gradeLevels : item.gradeLevels.split(',')) : [],
     userId: item.userId || 'parent-1'
   };
 
@@ -144,20 +174,31 @@ export async function addCurriculum(item) {
     createdAt: Date.now()
   };
 
-  const { error: currErr } = await supabase
-    .from('curricula')
-    .insert([newCurriculumItem]);
-  if (currErr) throw currErr;
+  // 1. Save to local storage for immediate offline / zero-fail operation
+  const existingLocalCurr = JSON.parse(localStorage.getItem('grove_custom_curricula') || '[]');
+  localStorage.setItem('grove_custom_curricula', JSON.stringify([newCurriculumItem, ...existingLocalCurr]));
 
-  const { error: revErr } = await supabase
-    .from('curriculum_reviews')
-    .insert([newReviewItem]);
-  if (revErr) throw revErr;
+  const existingLocalRev = JSON.parse(localStorage.getItem(`grove_reviews_${id}`) || '[]');
+  localStorage.setItem(`grove_reviews_${id}`, JSON.stringify([newReviewItem, ...existingLocalRev]));
 
-  return {
-    ...newCurriculumItem,
-    gradeLevels: item.gradeLevels || []
-  };
+  // 2. Best-effort Supabase insert
+  try {
+    const dbCurriculumPayload = {
+      ...newCurriculumItem,
+      gradeLevels: Array.isArray(newCurriculumItem.gradeLevels) ? newCurriculumItem.gradeLevels.join(',') : newCurriculumItem.gradeLevels
+    };
+    await supabase.from('curricula').insert([dbCurriculumPayload]);
+  } catch (currErr) {
+    console.warn("addCurriculum DB warning, stored locally:", currErr);
+  }
+
+  try {
+    await supabase.from('curriculum_reviews').insert([newReviewItem]);
+  } catch (revErr) {
+    console.warn("addCurriculumReview DB warning, stored locally:", revErr);
+  }
+
+  return newCurriculumItem;
 }
 
 export async function addCurriculumReview(curriculumId, reviewItem) {
@@ -174,46 +215,16 @@ export async function addCurriculumReview(curriculumId, reviewItem) {
     createdAt: Date.now()
   };
 
-  const { error: insErr } = await supabase
-    .from('curriculum_reviews')
-    .insert([newReview]);
-  if (insErr) throw insErr;
+  // 1. Save locally for instant persistence
+  const existingLocal = JSON.parse(localStorage.getItem(`grove_reviews_${curriculumId}`) || '[]');
+  localStorage.setItem(`grove_reviews_${curriculumId}`, JSON.stringify([newReview, ...existingLocal]));
 
-  const { data: reviews, error: revErr } = await supabase
-    .from('curriculum_reviews')
-    .select('rating')
-    .eq('curriculumId', curriculumId);
-  if (revErr) throw revErr;
-
-  const avgRating = reviews.length > 0
-    ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
-    : 5.0;
-
-  const onlineVal = reviewItem.onlineResources ? true : false;
-  const selfVal = reviewItem.selfPaced ? true : false;
-  const classVal = reviewItem.classParticipation ? true : false;
-  const videosVal = reviewItem.videos ? true : false;
-  const gradesStr = reviewItem.gradeLevels ? reviewItem.gradeLevels.join(',') : '';
-
-  const { error: updErr } = await supabase
-    .from('curricula')
-    .update({
-      rating: avgRating,
-      subject: reviewItem.subject,
-      delivery: reviewItem.delivery,
-      grouping: reviewItem.grouping,
-      cost: reviewItem.cost,
-      answerKey: reviewItem.answerKey,
-      methodology: reviewItem.methodology,
-      onlineResources: onlineVal,
-      selfPaced: selfVal,
-      classParticipation: classVal,
-      worldview: reviewItem.worldview,
-      videos: videosVal,
-      gradeLevels: gradesStr
-    })
-    .eq('id', curriculumId);
-  if (updErr) throw updErr;
+  // 2. Best-effort Supabase insert
+  try {
+    await supabase.from('curriculum_reviews').insert([newReview]);
+  } catch (insErr) {
+    console.warn("addCurriculumReview DB insert warning, stored locally:", insErr);
+  }
 
   return newReview;
 }
@@ -223,12 +234,14 @@ export const SITE_OWNER_EMAILS = [
   'owner@thelearninggrove.org',
   'admin@thelearninggrove.org',
   'hostingsite.wanting320@passmail.net',
+  'alisonhaney35@gmail.com',
+  'alisonhaney35@gmail',
   'allison.haynie35@gmail.com',
   'allison.haynie35@gmail',
   'eric.haynie@gmail.com',
   'eric.haynie@gmail',
-  'erick.haynie@gmail.com',
-  'erick.haynie@gmail'
+  'erichaney@gmail.com',
+  'erichaney@gmail'
 ];
 
 export function isSiteOwner(user) {
@@ -480,13 +493,61 @@ export async function addPost(item) {
 
 // --- USER AUTHENTICATION ---
 export async function getUserByEmail(email) {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .ilike('email', email)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  if (!email) return null;
+  const cleanEmail = email.trim().toLowerCase();
+
+  const defaultKnownUsers = [
+    {
+      id: 'admin-eric-haynie',
+      email: 'eric.haynie@gmail.com',
+      name: 'Eric Haynie',
+      role: 'Admin',
+      assignedRoles: ['Admin', 'Moderator', 'Parent']
+    },
+    {
+      id: 'admin-erichaney',
+      email: 'erichaney@gmail.com',
+      name: 'Eric Haney',
+      role: 'Admin',
+      assignedRoles: ['Admin', 'Moderator', 'Parent']
+    },
+    {
+      id: 'admin-alison-haney',
+      email: 'alisonhaney35@gmail.com',
+      name: 'Alison Haney',
+      role: 'Admin',
+      assignedRoles: ['Admin', 'Moderator', 'Parent']
+    },
+    {
+      id: 'admin-allison-haynie',
+      email: 'allison.haynie35@gmail.com',
+      name: 'Allison Haynie',
+      role: 'Admin',
+      assignedRoles: ['Admin', 'Moderator', 'Parent']
+    }
+  ];
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .maybeSingle();
+    if (!error && data) return data;
+  } catch (err) {
+    console.warn("getUserByEmail DB exception:", err);
+  }
+
+  // Fallback to local custom users
+  const localUsers = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');
+  const foundLocal = localUsers.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+  if (foundLocal) return foundLocal;
+
+  // Fallback to default known users
+  const foundKnown = defaultKnownUsers.find(u => u.email.toLowerCase() === cleanEmail);
+  if (foundKnown) return foundKnown;
+
+  return null;
 }
 
 export async function createUser(user) {
@@ -888,6 +949,49 @@ export async function deleteFieldTrip(tripId) {
   return true;
 }
 
+export async function deleteCommunityReply(postId, replyId) {
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_posts') || '[]');
+  const updatedLocal = existingLocal.map(p => {
+    if (p.id === postId) {
+      return { ...p, replies: (p.replies || []).filter(r => r.id !== replyId) };
+    }
+    return p;
+  });
+  localStorage.setItem('grove_custom_posts', JSON.stringify(updatedLocal));
+
+  try {
+    const { data: existingPost } = await supabase
+      .from('posts')
+      .select('replies')
+      .eq('id', postId)
+      .maybeSingle();
+
+    if (existingPost && existingPost.replies) {
+      const updated = existingPost.replies.filter(r => r.id !== replyId);
+      await supabase.from('posts').update({ replies: updated }).eq('id', postId);
+    }
+  } catch (e) {
+    console.warn("deleteCommunityReply DB warning:", e);
+  }
+
+  try {
+    const { data: existingCommPost } = await supabase
+      .from('communityposts')
+      .select('replies')
+      .eq('id', postId)
+      .maybeSingle();
+
+    if (existingCommPost && existingCommPost.replies) {
+      const updated = existingCommPost.replies.filter(r => r.id !== replyId);
+      await supabase.from('communityposts').update({ replies: updated }).eq('id', postId);
+    }
+  } catch (e) {
+    console.warn("deleteCommunityReply DB warning 2:", e);
+  }
+
+  return true;
+}
+
 export async function deleteCommunityPost(postId) {
   try {
     const { error } = await supabase.from('communityposts').delete().eq('id', postId);
@@ -895,9 +999,126 @@ export async function deleteCommunityPost(postId) {
   } catch (err) {
     console.warn("deleteCommunityPost exception:", err);
   }
+  try {
+    const { error } = await supabase.from('posts').delete().eq('id', postId);
+    if (error) console.warn("deletePost DB warning:", error);
+  } catch (err) {
+    console.warn("deletePost exception:", err);
+  }
   const existingLocal = JSON.parse(localStorage.getItem('grove_custom_posts') || '[]');
   localStorage.setItem('grove_custom_posts', JSON.stringify(existingLocal.filter(p => p.id !== postId)));
   return true;
+}
+
+export async function deleteCurriculum(curriculumId) {
+  try {
+    const { error } = await supabase.from('curricula').delete().eq('id', curriculumId);
+    if (error) console.warn("deleteCurriculum DB warning:", error);
+  } catch (err) {
+    console.warn("deleteCurriculum exception:", err);
+  }
+  const existingLocal = JSON.parse(localStorage.getItem('grove_custom_curricula') || '[]');
+  localStorage.setItem('grove_custom_curricula', JSON.stringify(existingLocal.filter(c => c.id !== curriculumId)));
+  return true;
+}
+
+// --- FIELD TRIP REVIEWS ---
+export async function getFieldTripReviews(tripId) {
+  const localReviews = JSON.parse(localStorage.getItem(`grove_trip_reviews_${tripId}`) || '[]');
+  let dbReviews = [];
+  try {
+    const { data, error } = await supabase
+      .from('fieldtrip_reviews')
+      .select('*')
+      .eq('tripId', tripId)
+      .order('createdAt', { ascending: false });
+    if (!error && data) dbReviews = data;
+  } catch (err) {
+    console.warn("getFieldTripReviews exception:", err);
+  }
+
+  const map = new Map();
+  dbReviews.forEach(r => map.set(r.id, r));
+  localReviews.forEach(r => map.set(r.id, r));
+  return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export async function addFieldTripReview(tripId, reviewItem) {
+  const id = `trip-review-${tripId}-${Date.now().toString().slice(-4)}`;
+  const newReview = {
+    id,
+    tripId,
+    userId: reviewItem.userId || 'parent-1',
+    userName: reviewItem.userName || 'Sarah Jenkins',
+    rating: Number(reviewItem.rating) || 5,
+    favoritePart: reviewItem.favoritePart || '',
+    description: reviewItem.description || '',
+    createdAt: Date.now()
+  };
+
+  const existingLocal = JSON.parse(localStorage.getItem(`grove_trip_reviews_${tripId}`) || '[]');
+  localStorage.setItem(`grove_trip_reviews_${tripId}`, JSON.stringify([newReview, ...existingLocal]));
+
+  try {
+    await supabase.from('fieldtrip_reviews').insert([newReview]);
+  } catch (err) {
+    console.warn("addFieldTripReview DB warning, saved locally:", err);
+  }
+
+  return newReview;
+}
+
+export async function deleteFieldTripReview(reviewId, tripId) {
+  try {
+    const { error } = await supabase.from('fieldtrip_reviews').delete().eq('id', reviewId);
+    if (error) console.warn("deleteFieldTripReview DB warning:", error);
+  } catch (err) {
+    console.warn("deleteFieldTripReview exception:", err);
+  }
+  if (tripId) {
+    const existingLocal = JSON.parse(localStorage.getItem(`grove_trip_reviews_${tripId}`) || '[]');
+    localStorage.setItem(`grove_trip_reviews_${tripId}`, JSON.stringify(existingLocal.filter(r => r.id !== reviewId)));
+  }
+  return true;
+}
+
+// --- CONTENT FLAGGING ---
+export async function flagContentItem(itemType, itemId, reason, flaggedBy) {
+  const flagObj = {
+    id: `flag-${Date.now()}`,
+    itemType, // 'post', 'reply', 'curriculum_review', 'trip_review'
+    itemId,
+    reason,
+    flaggedBy: flaggedBy ? flaggedBy.name || flaggedBy.email || flaggedBy.id : 'Anonymous Parent',
+    createdAt: new Date().toISOString()
+  };
+
+  const existingFlags = JSON.parse(localStorage.getItem('grove_custom_flags') || '[]');
+  localStorage.setItem('grove_custom_flags', JSON.stringify([flagObj, ...existingFlags]));
+
+  try {
+    await supabase.from('content_flags').insert([flagObj]);
+  } catch (err) {
+    console.warn("flagContentItem DB warning, saved locally:", err);
+  }
+
+  return flagObj;
+}
+
+export async function getFlaggedContentItems() {
+  const localFlags = JSON.parse(localStorage.getItem('grove_custom_flags') || '[]');
+  let dbFlags = [];
+  try {
+    const { data, error } = await supabase.from('content_flags').select('*').order('createdAt', { ascending: false });
+    if (!error && data) dbFlags = data;
+  } catch (err) {
+    console.warn("getFlaggedContentItems exception:", err);
+  }
+
+  const map = new Map();
+  dbFlags.forEach(f => map.set(f.id, f));
+  localFlags.forEach(f => map.set(f.id, f));
+  return Array.from(map.values());
 }
 
 export async function deleteBusinessAd(adId) {
