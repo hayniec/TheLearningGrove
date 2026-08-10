@@ -1,399 +1,1021 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Learning Grove — Accessible theme preview</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-<style>
-/* ---- tokens (mirrors grove-theme.css) ---- */
-:root{
-  color-scheme:light;
-  --surface-page:#FBFAF7; --surface-card:#FFFFFF; --surface-raised:#F3F1EC; --surface-sunken:#F0EEE8;
-  --ink:#1B201C; --ink-muted:#556056; --ink-inverse:#FFFFFF;
-  --brand:#1E3F20; --brand-hover:#2A5A2D; --brand-fill:#1E3F20; --brand-on-fill:#FFFFFF;
-  --brand-wash:#E4EDE4; --brand-wash-ink:#1E3F20;
-  --oak-text:#8A5320; --oak-decor:#B77C43; --oak-wash:#F6EADC; --oak-wash-ink:#6E4318;
-  --star:#A85F06; --star-empty:#B9B4A9;
-  --danger:#A0201A; --danger-wash:#FBE9E7; --success:#1F6127; --success-wash:#E4F0E5;
-  --line-subtle:#DEE3DD; --line-strong:#6D7A6D;
-  --focus-ring:#1E3F20; --focus-halo:#FBFAF7;
-  --shadow-sm:0 1px 2px rgba(27,32,28,.06),0 2px 8px rgba(27,32,28,.05);
-  --shadow-md:0 2px 4px rgba(27,32,28,.07),0 8px 24px rgba(27,32,28,.08);
-  --text-xs:.875rem; --text-sm:.9375rem; --text-base:1rem; --text-lg:1.125rem;
-  --text-xl:1.375rem; --text-2xl:1.75rem; --text-3xl:clamp(1.875rem,1.5rem + 1.5vw,2.5rem);
-  --tap-min:44px;
-  --font-display:'Outfit',system-ui,sans-serif; --font-body:'Inter',system-ui,sans-serif;
-}
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --surface-page:#101410; --surface-card:#1A211A; --surface-raised:#232B22; --surface-sunken:#0C0F0C;
-  --ink:#E7EDE6; --ink-muted:#A7B3A6; --ink-inverse:#0E1410;
-  --brand:#93C795; --brand-hover:#AEDBB0; --brand-fill:#93C795; --brand-on-fill:#0E1410;
-  --brand-wash:#263326; --brand-wash-ink:#C6E3C6;
-  --oak-text:#E0A96A; --oak-decor:#C98D4E; --oak-wash:#33271A; --oak-wash-ink:#EDC796;
-  --star:#F0B75E; --star-empty:#4E5A4D;
-  --danger:#F2A9A2; --danger-wash:#37201E; --success:#82CE8A; --success-wash:#1B2E1D;
-  --line-subtle:#2E372D; --line-strong:#768476;
-  --focus-ring:#F0B75E; --focus-halo:#101410;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.5); --shadow-md:0 4px 16px rgba(0,0,0,.55);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-body);background:var(--surface-page);color:var(--ink);
-  line-height:1.6;font-size:var(--text-base);-webkit-font-smoothing:antialiased;min-height:100svh}
-h1,h2,h3,h4{font-family:var(--font-display);line-height:1.2;letter-spacing:-.02em}
-*:focus{outline:none}
-*:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;
-  box-shadow:0 0 0 2px var(--focus-halo);border-radius:6px}
-.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
-  overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
-.skip-link{position:absolute;left:-9999px;top:0;z-index:99;padding:.75rem 1.25rem;
-  background:var(--surface-card);color:var(--brand);font-weight:700;border:2px solid var(--focus-ring)}
-.skip-link:focus{left:0}
-@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}
-  .card:hover{transform:none!important}}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Learning Grove — Accessible theme preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ---- tokens (mirrors grove-theme.css) ---- */
+    :root {
+      color-scheme: light;
+      --surface-page: #FBFAF7;
+      --surface-card: #FFFFFF;
+      --surface-raised: #F3F1EC;
+      --surface-sunken: #F0EEE8;
+      --ink: #1B201C;
+      --ink-muted: #556056;
+      --ink-inverse: #FFFFFF;
+      --brand: #1E3F20;
+      --brand-hover: #2A5A2D;
+      --brand-fill: #1E3F20;
+      --brand-on-fill: #FFFFFF;
+      --brand-wash: #E4EDE4;
+      --brand-wash-ink: #1E3F20;
+      --oak-text: #8A5320;
+      --oak-decor: #B77C43;
+      --oak-wash: #F6EADC;
+      --oak-wash-ink: #6E4318;
+      --star: #A85F06;
+      --star-empty: #B9B4A9;
+      --danger: #A0201A;
+      --danger-wash: #FBE9E7;
+      --success: #1F6127;
+      --success-wash: #E4F0E5;
+      --line-subtle: #DEE3DD;
+      --line-strong: #6D7A6D;
+      --focus-ring: #1E3F20;
+      --focus-halo: #FBFAF7;
+      --shadow-sm: 0 1px 2px rgba(27, 32, 28, .06), 0 2px 8px rgba(27, 32, 28, .05);
+      --shadow-md: 0 2px 4px rgba(27, 32, 28, .07), 0 8px 24px rgba(27, 32, 28, .08);
+      --text-xs: .875rem;
+      --text-sm: .9375rem;
+      --text-base: 1rem;
+      --text-lg: 1.125rem;
+      --text-xl: 1.375rem;
+      --text-2xl: 1.75rem;
+      --text-3xl: clamp(1.875rem, 1.5rem + 1.5vw, 2.5rem);
+      --tap-min: 44px;
+      --font-display: 'Outfit', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+    }
 
-/* ---- shell ---- */
-.wrap{max-width:1160px;margin:0 auto;padding:clamp(1rem,3vw,2.5rem)}
-.topbar{display:flex;flex-wrap:wrap;gap:1.25rem;align-items:center;justify-content:space-between;
-  padding-bottom:1.25rem;border-bottom:1px solid var(--line-subtle);margin-bottom:2rem}
-.brand{display:flex;align-items:center;gap:.75rem}
-.brand h1{font-size:var(--text-xl);color:var(--brand);font-weight:800}
-.brand p{font-size:var(--text-xs);color:var(--ink-muted);margin-top:-.2rem}
-.mark{width:44px;height:44px;flex:none}
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --surface-page: #101410;
+      --surface-card: #1A211A;
+      --surface-raised: #232B22;
+      --surface-sunken: #0C0F0C;
+      --ink: #E7EDE6;
+      --ink-muted: #A7B3A6;
+      --ink-inverse: #0E1410;
+      --brand: #93C795;
+      --brand-hover: #AEDBB0;
+      --brand-fill: #93C795;
+      --brand-on-fill: #0E1410;
+      --brand-wash: #263326;
+      --brand-wash-ink: #C6E3C6;
+      --oak-text: #E0A96A;
+      --oak-decor: #C98D4E;
+      --oak-wash: #33271A;
+      --oak-wash-ink: #EDC796;
+      --star: #F0B75E;
+      --star-empty: #4E5A4D;
+      --danger: #F2A9A2;
+      --danger-wash: #37201E;
+      --success: #82CE8A;
+      --success-wash: #1B2E1D;
+      --line-subtle: #2E372D;
+      --line-strong: #768476;
+      --focus-ring: #F0B75E;
+      --focus-halo: #101410;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .5);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, .55);
+    }
 
-/* theme switch: segmented radio group, self-labelling */
-.themeswitch{display:flex;gap:0;border:1px solid var(--line-strong);border-radius:12px;
-  overflow:hidden;background:var(--surface-card)}
-.themeswitch legend{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-.themeswitch label{display:inline-flex;align-items:center;gap:.4rem;min-height:var(--tap-min);
-  padding:0 .9rem;font-size:var(--text-sm);font-weight:600;cursor:pointer;color:var(--ink-muted);
-  border-right:1px solid var(--line-subtle)}
-.themeswitch label:last-of-type{border-right:none}
-.themeswitch input{position:absolute;opacity:0;width:1px;height:1px}
-.themeswitch input:checked + span{color:var(--brand-on-fill)}
-.themeswitch label:has(input:checked){background:var(--brand-fill);color:var(--brand-on-fill)}
-.themeswitch label:has(input:focus-visible){outline:3px solid var(--focus-ring);outline-offset:-3px}
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-section{margin-bottom:2.75rem}
-.sec-head{display:flex;align-items:baseline;gap:.75rem;margin-bottom:1rem;
-  padding-bottom:.5rem;border-bottom:2px solid var(--oak-decor)}
-.sec-head h2{font-size:var(--text-lg);color:var(--brand)}
-.sec-head span{font-size:var(--text-xs);color:var(--ink-muted)}
+    body {
+      font-family: var(--font-body);
+      background: var(--surface-page);
+      color: var(--ink);
+      line-height: 1.6;
+      font-size: var(--text-base);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100svh
+    }
 
-/* ---- layout ---- */
-.explorer{display:grid;grid-template-columns:280px 1fr;gap:1.75rem}
-@media(max-width:840px){.explorer{grid-template-columns:1fr}}
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: var(--font-display);
+      line-height: 1.2;
+      letter-spacing: -.02em
+    }
 
-/* ---- filters ---- */
-.rail{background:var(--surface-card);border:1px solid var(--line-subtle);border-radius:14px;
-  padding:1.25rem;box-shadow:var(--shadow-sm);height:fit-content}
-fieldset.fg{border:none;margin-bottom:1.25rem;padding:0}
-fieldset.fg + fieldset.fg{border-top:1px solid var(--line-subtle);padding-top:1.25rem}
-fieldset.fg legend{font-size:var(--text-sm);font-weight:700;color:var(--ink);margin-bottom:.4rem}
-.opt{display:flex;align-items:center;gap:.6rem;min-height:var(--tap-min);
-  font-size:var(--text-sm);cursor:pointer;color:var(--ink)}
-.opt input{width:20px;height:20px;accent-color:var(--brand-fill);flex:none}
-.opt .n{margin-left:auto;font-size:var(--text-xs);color:var(--ink-muted)}
+    *:focus {
+      outline: none
+    }
 
-/* ---- inputs ---- */
-.field{margin-bottom:1.1rem}
-.field label{display:block;font-size:var(--text-sm);font-weight:600;margin-bottom:.3rem}
-.hint{font-size:var(--text-xs);color:var(--ink-muted);margin-bottom:.4rem}
-input[type=text],input[type=email],input[type=search],select,textarea{
-  width:100%;min-height:var(--tap-min);padding:.6rem .75rem;font:inherit;font-size:var(--text-base);
-  color:var(--ink);background:var(--surface-card);border:1px solid var(--line-strong);border-radius:9px}
-input::placeholder,textarea::placeholder{color:var(--ink-muted);opacity:1}
-[aria-invalid=true]{border:2px solid var(--danger);background:var(--danger-wash)}
-.err{display:flex;gap:.35rem;margin-top:.35rem;font-size:var(--text-sm);font-weight:600;color:var(--danger)}
-.err::before{content:"!";font-weight:800}
+    *:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 2px var(--focus-halo);
+      border-radius: 6px
+    }
 
-/* ---- buttons ---- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
-  min-height:var(--tap-min);padding:.6rem 1.25rem;font:inherit;font-family:var(--font-display);
-  font-weight:600;border-radius:10px;border:1px solid transparent;cursor:pointer}
-.btn-primary{background:var(--brand-fill);color:var(--brand-on-fill)}
-.btn-primary:hover{background:var(--brand-hover)}
-.btn-accent{background:var(--oak-text);color:#fff}
-:root[data-theme=dark] .btn-accent{color:var(--ink-inverse)}
-.btn-secondary{background:var(--surface-card);color:var(--brand);border-color:var(--line-strong)}
-.btn-secondary:hover{background:var(--brand-wash)}
-.btn svg{width:18px;height:18px;fill:currentColor}
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0
+    }
 
-/* ---- cards ---- */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem}
-.card{background:var(--surface-card);border:1px solid var(--line-subtle);border-radius:14px;
-  padding:1.35rem;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:.6rem;
-  transition:border-color .2s,box-shadow .2s,transform .2s}
-.card:hover{border-color:var(--line-strong);box-shadow:var(--shadow-md);transform:translateY(-3px)}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem}
-.card h3{font-size:var(--text-lg)}
-.card h3 a{color:var(--brand);text-decoration:none}
-.card h3 a:hover{text-decoration:underline}
-.pub{font-size:var(--text-xs);color:var(--ink-muted)}
-.desc{font-size:var(--text-sm);color:var(--ink-muted)}
-.chip{display:inline-block;background:var(--brand-wash);color:var(--brand-wash-ink);
-  font-size:var(--text-xs);font-weight:700;padding:.15rem .6rem;border-radius:999px;white-space:nowrap}
-.chip--oak{background:var(--oak-wash);color:var(--oak-wash-ink)}
-.chips{display:flex;flex-wrap:wrap;gap:.4rem}
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      z-index: 99;
+      padding: .75rem 1.25rem;
+      background: var(--surface-card);
+      color: var(--brand);
+      font-weight: 700;
+      border: 2px solid var(--focus-ring)
+    }
 
-/* signature: the grade-span band — a "growth ring" running the width of the
+    .skip-link:focus {
+      left: 0
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      * {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important
+      }
+
+      .card:hover {
+        transform: none !important
+      }
+    }
+
+    /* ---- shell ---- */
+    .wrap {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: clamp(1rem, 3vw, 2.5rem)
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--line-subtle);
+      margin-bottom: 2rem
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem
+    }
+
+    .brand h1 {
+      font-size: var(--text-xl);
+      color: var(--brand);
+      font-weight: 800
+    }
+
+    .brand p {
+      font-size: var(--text-xs);
+      color: var(--ink-muted);
+      margin-top: -.2rem
+    }
+
+    .mark {
+      width: 44px;
+      height: 44px;
+      flex: none
+    }
+
+    /* theme switch: segmented radio group, self-labelling */
+    .themeswitch {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface-card)
+    }
+
+    .themeswitch legend {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%)
+    }
+
+    .themeswitch label {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      min-height: var(--tap-min);
+      padding: 0 .9rem;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--ink-muted);
+      border-right: 1px solid var(--line-subtle)
+    }
+
+    .themeswitch label:last-of-type {
+      border-right: none
+    }
+
+    .themeswitch input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px
+    }
+
+    .themeswitch input:checked+span {
+      color: var(--brand-on-fill)
+    }
+
+    .themeswitch label:has(input:checked) {
+      background: var(--brand-fill);
+      color: var(--brand-on-fill)
+    }
+
+    .themeswitch label:has(input:focus-visible) {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: -3px
+    }
+
+    section {
+      margin-bottom: 2.75rem
+    }
+
+    .sec-head {
+      display: flex;
+      align-items: baseline;
+      gap: .75rem;
+      margin-bottom: 1rem;
+      padding-bottom: .5rem;
+      border-bottom: 2px solid var(--oak-decor)
+    }
+
+    .sec-head h2 {
+      font-size: var(--text-lg);
+      color: var(--brand)
+    }
+
+    .sec-head span {
+      font-size: var(--text-xs);
+      color: var(--ink-muted)
+    }
+
+    /* ---- layout ---- */
+    .explorer {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1.75rem
+    }
+
+    @media(max-width:840px) {
+      .explorer {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* ---- filters ---- */
+    .rail {
+      background: var(--surface-card);
+      border: 1px solid var(--line-subtle);
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      height: fit-content
+    }
+
+    fieldset.fg {
+      border: none;
+      margin-bottom: 1.25rem;
+      padding: 0
+    }
+
+    fieldset.fg+fieldset.fg {
+      border-top: 1px solid var(--line-subtle);
+      padding-top: 1.25rem
+    }
+
+    fieldset.fg legend {
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: .4rem
+    }
+
+    .opt {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      min-height: var(--tap-min);
+      font-size: var(--text-sm);
+      cursor: pointer;
+      color: var(--ink)
+    }
+
+    .opt input {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--brand-fill);
+      flex: none
+    }
+
+    .opt .n {
+      margin-left: auto;
+      font-size: var(--text-xs);
+      color: var(--ink-muted)
+    }
+
+    /* ---- inputs ---- */
+    .field {
+      margin-bottom: 1.1rem
+    }
+
+    .field label {
+      display: block;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-bottom: .3rem
+    }
+
+    .hint {
+      font-size: var(--text-xs);
+      color: var(--ink-muted);
+      margin-bottom: .4rem
+    }
+
+    input[type=text],
+    input[type=email],
+    input[type=search],
+    select,
+    textarea {
+      width: 100%;
+      min-height: var(--tap-min);
+      padding: .6rem .75rem;
+      font: inherit;
+      font-size: var(--text-base);
+      color: var(--ink);
+      background: var(--surface-card);
+      border: 1px solid var(--line-strong);
+      border-radius: 9px
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--ink-muted);
+      opacity: 1
+    }
+
+    [aria-invalid=true] {
+      border: 2px solid var(--danger);
+      background: var(--danger-wash)
+    }
+
+    .err {
+      display: flex;
+      gap: .35rem;
+      margin-top: .35rem;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--danger)
+    }
+
+    .err::before {
+      content: "!";
+      font-weight: 800
+    }
+
+    /* ---- buttons ---- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      min-height: var(--tap-min);
+      padding: .6rem 1.25rem;
+      font: inherit;
+      font-family: var(--font-display);
+      font-weight: 600;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer
+    }
+
+    .btn-primary {
+      background: var(--brand-fill);
+      color: var(--brand-on-fill)
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-hover)
+    }
+
+    .btn-accent {
+      background: var(--oak-text);
+      color: #fff
+    }
+
+    :root[data-theme=dark] .btn-accent {
+      color: var(--ink-inverse)
+    }
+
+    .btn-secondary {
+      background: var(--surface-card);
+      color: var(--brand);
+      border-color: var(--line-strong)
+    }
+
+    .btn-secondary:hover {
+      background: var(--brand-wash)
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor
+    }
+
+    /* ---- cards ---- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem
+    }
+
+    .card {
+      background: var(--surface-card);
+      border: 1px solid var(--line-subtle);
+      border-radius: 14px;
+      padding: 1.35rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      transition: border-color .2s, box-shadow .2s, transform .2s
+    }
+
+    .card:hover {
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-3px)
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: .6rem
+    }
+
+    .card h3 {
+      font-size: var(--text-lg)
+    }
+
+    .card h3 a {
+      color: var(--brand);
+      text-decoration: none
+    }
+
+    .card h3 a:hover {
+      text-decoration: underline
+    }
+
+    .pub {
+      font-size: var(--text-xs);
+      color: var(--ink-muted)
+    }
+
+    .desc {
+      font-size: var(--text-sm);
+      color: var(--ink-muted)
+    }
+
+    .chip {
+      display: inline-block;
+      background: var(--brand-wash);
+      color: var(--brand-wash-ink);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      padding: .15rem .6rem;
+      border-radius: 999px;
+      white-space: nowrap
+    }
+
+    .chip--oak {
+      background: var(--oak-wash);
+      color: var(--oak-wash-ink)
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem
+    }
+
+    /* signature: the grade-span band — a "growth ring" running the width of the
    card showing exactly which grades this curriculum covers */
-.span-band{margin-top:.35rem}
-.span-band .lbl{font-size:var(--text-xs);color:var(--ink-muted);margin-bottom:.25rem}
-.span-band ol{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;list-style:none}
-.span-band li{font-size:.6875rem;text-align:center;padding:.2rem 0;border-radius:3px;
-  background:var(--surface-raised);color:var(--ink-muted);font-weight:600}
-.span-band li.on{background:var(--brand-fill);color:var(--brand-on-fill)}
+    .span-band {
+      margin-top: .35rem
+    }
 
-/* ---- rating ---- */
-.rating{display:flex;align-items:center;gap:.4rem}
-.stars{display:inline-flex;gap:1px}
-.stars svg{width:17px;height:17px}
-.stars .on{fill:var(--star)} .stars .off{fill:var(--star-empty)}
-.rating b{font-size:var(--text-sm);color:var(--ink)}
-.rating .ct{font-size:var(--text-xs);color:var(--ink-muted)}
+    .span-band .lbl {
+      font-size: var(--text-xs);
+      color: var(--ink-muted);
+      margin-bottom: .25rem
+    }
 
-/* ---- notices ---- */
-.notice{display:flex;gap:.6rem;padding:.85rem 1rem;border-radius:10px;border-left:4px solid;
-  font-size:var(--text-sm);margin-bottom:.75rem}
-.notice--error{background:var(--danger-wash);border-color:var(--danger);color:var(--danger)}
-.notice--success{background:var(--success-wash);border-color:var(--success);color:var(--success)}
-.notice--info{background:var(--brand-wash);border-color:var(--brand);color:var(--brand-wash-ink)}
+    .span-band ol {
+      display: grid;
+      grid-template-columns: repeat(13, 1fr);
+      gap: 2px;
+      list-style: none
+    }
 
-/* ---- dialog ---- */
-dialog{width:min(92vw,560px);padding:0;border:1px solid var(--line-strong);border-radius:16px;
-  background:var(--surface-card);color:var(--ink);box-shadow:var(--shadow-md)}
-dialog::backdrop{background:rgba(10,14,10,.6)}
-.dh{display:flex;justify-content:space-between;align-items:center;gap:1rem;
-  padding:1.1rem 1.35rem;border-bottom:1px solid var(--line-subtle)}
-.dh h3{font-size:var(--text-lg);color:var(--brand)}
-.db{padding:1.35rem}
-.df{display:flex;gap:.75rem;justify-content:flex-end;padding:1rem 1.35rem;border-top:1px solid var(--line-subtle)}
-.iconbtn{display:grid;place-items:center;width:var(--tap-min);height:var(--tap-min);
-  background:transparent;border:none;border-radius:10px;cursor:pointer;color:var(--ink);font-size:1.4rem}
-.iconbtn:hover{background:var(--surface-raised)}
-@media(max-width:560px){.df{flex-direction:column-reverse}.df .btn{width:100%}}
+    .span-band li {
+      font-size: .6875rem;
+      text-align: center;
+      padding: .2rem 0;
+      border-radius: 3px;
+      background: var(--surface-raised);
+      color: var(--ink-muted);
+      font-weight: 600
+    }
 
-/* ---- swatches ---- */
-.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.75rem}
-.sw div{border:1px solid var(--line-subtle);border-radius:10px;padding:.7rem;font-size:var(--text-xs)}
-.sw .dot{display:block;height:38px;border-radius:6px;margin-bottom:.45rem;border:1px solid var(--line-subtle)}
-.sw code{font-family:ui-monospace,monospace;color:var(--ink-muted);font-size:.8125rem}
-.sw b{display:block;color:var(--ink)}
-.ratio{color:var(--success);font-weight:700}
-</style>
+    .span-band li.on {
+      background: var(--brand-fill);
+      color: var(--brand-on-fill)
+    }
+
+    /* ---- rating ---- */
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: .4rem
+    }
+
+    .stars {
+      display: inline-flex;
+      gap: 1px
+    }
+
+    .stars svg {
+      width: 17px;
+      height: 17px
+    }
+
+    .stars .on {
+      fill: var(--star)
+    }
+
+    .stars .off {
+      fill: var(--star-empty)
+    }
+
+    .rating b {
+      font-size: var(--text-sm);
+      color: var(--ink)
+    }
+
+    .rating .ct {
+      font-size: var(--text-xs);
+      color: var(--ink-muted)
+    }
+
+    /* ---- notices ---- */
+    .notice {
+      display: flex;
+      gap: .6rem;
+      padding: .85rem 1rem;
+      border-radius: 10px;
+      border-left: 4px solid;
+      font-size: var(--text-sm);
+      margin-bottom: .75rem
+    }
+
+    .notice--error {
+      background: var(--danger-wash);
+      border-color: var(--danger);
+      color: var(--danger)
+    }
+
+    .notice--success {
+      background: var(--success-wash);
+      border-color: var(--success);
+      color: var(--success)
+    }
+
+    .notice--info {
+      background: var(--brand-wash);
+      border-color: var(--brand);
+      color: var(--brand-wash-ink)
+    }
+
+    /* ---- dialog ---- */
+    dialog {
+      width: min(92vw, 560px);
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      background: var(--surface-card);
+      color: var(--ink);
+      box-shadow: var(--shadow-md)
+    }
+
+    dialog::backdrop {
+      background: rgba(10, 14, 10, .6)
+    }
+
+    .dh {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.1rem 1.35rem;
+      border-bottom: 1px solid var(--line-subtle)
+    }
+
+    .dh h3 {
+      font-size: var(--text-lg);
+      color: var(--brand)
+    }
+
+    .db {
+      padding: 1.35rem
+    }
+
+    .df {
+      display: flex;
+      gap: .75rem;
+      justify-content: flex-end;
+      padding: 1rem 1.35rem;
+      border-top: 1px solid var(--line-subtle)
+    }
+
+    .iconbtn {
+      display: grid;
+      place-items: center;
+      width: var(--tap-min);
+      height: var(--tap-min);
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--ink);
+      font-size: 1.4rem
+    }
+
+    .iconbtn:hover {
+      background: var(--surface-raised)
+    }
+
+    @media(max-width:560px) {
+      .df {
+        flex-direction: column-reverse
+      }
+
+      .df .btn {
+        width: 100%
+      }
+    }
+
+    /* ---- swatches ---- */
+    .sw {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: .75rem
+    }
+
+    .sw div {
+      border: 1px solid var(--line-subtle);
+      border-radius: 10px;
+      padding: .7rem;
+      font-size: var(--text-xs)
+    }
+
+    .sw .dot {
+      display: block;
+      height: 38px;
+      border-radius: 6px;
+      margin-bottom: .45rem;
+      border: 1px solid var(--line-subtle)
+    }
+
+    .sw code {
+      font-family: ui-monospace, monospace;
+      color: var(--ink-muted);
+      font-size: .8125rem
+    }
+
+    .sw b {
+      display: block;
+      color: var(--ink)
+    }
+
+    .ratio {
+      color: var(--success);
+      font-weight: 700
+    }
+  </style>
 </head>
+
 <body>
-<a class="skip-link" href="#main">Skip to main content</a>
+  <a class="skip-link" href="#main">Skip to main content</a>
 
-<div class="wrap">
+  <div class="wrap">
 
-  <header class="topbar">
-    <div class="brand">
-      <svg class="mark" viewBox="0 0 44 44" role="img" aria-label="The Learning Grove">
-        <circle cx="22" cy="22" r="21" fill="var(--brand-wash)"/>
-        <!-- growth rings -->
-        <circle cx="22" cy="22" r="15" fill="none" stroke="var(--brand)" stroke-width="1.6" opacity=".45"/>
-        <circle cx="22" cy="22" r="10.5" fill="none" stroke="var(--brand)" stroke-width="1.6" opacity=".65"/>
-        <circle cx="22" cy="22" r="6" fill="none" stroke="var(--brand)" stroke-width="1.6" opacity=".85"/>
-        <!-- open book at the core -->
-        <path d="M15 21.5c2.6-1.5 4.7-1.5 7 0 2.3-1.5 4.4-1.5 7 0v5.5c-2.6-1.5-4.7-1.5-7 0-2.3-1.5-4.4-1.5-7 0z"
-              fill="var(--oak-decor)"/>
-        <path d="M22 21.5v5.5" stroke="var(--brand)" stroke-width="1.2"/>
-      </svg>
-      <div>
-        <h1>The Learning Grove</h1>
-        <p>Accessible theme preview — light &amp; dark</p>
-      </div>
-    </div>
-
-    <fieldset class="themeswitch">
-      <legend>Appearance</legend>
-      <label><input type="radio" name="theme" value="light" checked><span>Light</span></label>
-      <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
-      <label><input type="radio" name="theme" value="system"><span>Match device</span></label>
-    </fieldset>
-  </header>
-
-  <main id="main">
-
-    <section>
-      <div class="sec-head"><h2>Curriculum explorer</h2><span>the primary surface</span></div>
-      <div class="explorer">
-
-        <form class="rail" aria-label="Filter curricula">
-          <div class="field">
-            <label for="q">Search</label>
-            <input type="search" id="q" placeholder="Title or publisher">
-          </div>
-          <fieldset class="fg">
-            <legend>Subject</legend>
-            <label class="opt"><input type="checkbox" checked><span>Math</span><span class="n">128</span></label>
-            <label class="opt"><input type="checkbox"><span>Language arts</span><span class="n">94</span></label>
-            <label class="opt"><input type="checkbox"><span>Science</span><span class="n">71</span></label>
-          </fieldset>
-          <fieldset class="fg">
-            <legend>Approach</legend>
-            <label class="opt"><input type="checkbox"><span>Mastery</span><span class="n">83</span></label>
-            <label class="opt"><input type="checkbox" checked><span>Spiral</span><span class="n">62</span></label>
-          </fieldset>
-          <fieldset class="fg">
-            <legend>Worldview</legend>
-            <label class="opt"><input type="radio" name="wv" checked><span>Any</span></label>
-            <label class="opt"><input type="radio" name="wv"><span>Secular</span></label>
-            <label class="opt"><input type="radio" name="wv"><span>Faith-based</span></label>
-          </fieldset>
-          <button type="button" class="btn btn-secondary" style="width:100%">Clear filters</button>
-        </form>
-
+    <header class="topbar">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 44 44" role="img" aria-label="The Learning Grove">
+          <circle cx="22" cy="22" r="21" fill="var(--brand-wash)" />
+          <!-- growth rings -->
+          <circle cx="22" cy="22" r="15" fill="none" stroke="var(--brand)" stroke-width="1.6" opacity=".45" />
+          <circle cx="22" cy="22" r="10.5" fill="none" stroke="var(--brand)" stroke-width="1.6" opacity=".65" />
+          <circle cx="22" cy="22" r="6" fill="none" stroke="var(--brand)" stroke-width="1.6" opacity=".85" />
+          <!-- open book at the core -->
+          <path d="M15 21.5c2.6-1.5 4.7-1.5 7 0 2.3-1.5 4.4-1.5 7 0v5.5c-2.6-1.5-4.7-1.5-7 0-2.3-1.5-4.4-1.5-7 0z"
+            fill="var(--oak-decor)" />
+          <path d="M22 21.5v5.5" stroke="var(--brand)" stroke-width="1.2" />
+        </svg>
         <div>
-          <p class="notice notice--info" role="status">
-            <span>Showing 24 curricula. 3 filters applied.</span>
-          </p>
+          <h1>The Learning Grove</h1>
+          <p>Accessible theme preview — light &amp; dark</p>
+        </div>
+      </div>
 
-          <div class="grid">
-            <article class="card">
-              <div class="card-top">
-                <div>
-                  <h3><a href="#main">Beast Academy</a></h3>
-                  <p class="pub">Art of Problem Solving</p>
-                </div>
-                <span class="chip">Math</span>
-              </div>
-              <p class="rating">
-                <span class="stars" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                </span>
-                <b>4.8</b><span class="ct">· 31 families</span>
-                <span class="visually-hidden">4.8 out of 5 stars from 31 families</span>
-              </p>
-              <p class="desc">Comic-book style guides that make genuinely hard problem-solving feel like play.</p>
-              <div class="chips"><span class="chip--oak chip">$$$</span><span class="chip">Mastery</span><span class="chip">Secular</span></div>
-              <div class="span-band">
-                <p class="lbl">Grades covered</p>
-                <ol>
-                  <li>K</li><li class="on">1</li><li class="on">2</li><li class="on">3</li><li class="on">4</li><li class="on">5</li>
-                  <li>6</li><li>7</li><li>8</li><li>9</li><li>10</li><li>11</li><li>12</li>
-                </ol>
-              </div>
-            </article>
+      <fieldset class="themeswitch">
+        <legend>Appearance</legend>
+        <label><input type="radio" name="theme" value="light" checked><span>Light</span></label>
+        <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+        <label><input type="radio" name="theme" value="system"><span>Match device</span></label>
+      </fieldset>
+    </header>
 
-            <article class="card">
-              <div class="card-top">
-                <div>
-                  <h3><a href="#main">Saxon Math 5/4</a></h3>
-                  <p class="pub">Houghton Mifflin Harcourt</p>
+    <main id="main">
+
+      <section>
+        <div class="sec-head">
+          <h2>Curriculum explorer</h2><span>the primary surface</span>
+        </div>
+        <div class="explorer">
+
+          <form class="rail" aria-label="Filter curricula">
+            <div class="field">
+              <label for="q">Search</label>
+              <input type="search" id="q" placeholder="Title or publisher">
+            </div>
+            <fieldset class="fg">
+              <legend>Subject</legend>
+              <label class="opt"><input type="checkbox" checked><span>Math</span><span class="n">128</span></label>
+              <label class="opt"><input type="checkbox"><span>Language arts</span><span class="n">94</span></label>
+              <label class="opt"><input type="checkbox"><span>Science</span><span class="n">71</span></label>
+            </fieldset>
+            <fieldset class="fg">
+              <legend>Approach</legend>
+              <label class="opt"><input type="checkbox"><span>Mastery</span><span class="n">83</span></label>
+              <label class="opt"><input type="checkbox" checked><span>Spiral</span><span class="n">62</span></label>
+            </fieldset>
+            <fieldset class="fg">
+              <legend>Worldview</legend>
+              <label class="opt"><input type="radio" name="wv" checked><span>Any</span></label>
+              <label class="opt"><input type="radio" name="wv"><span>Secular</span></label>
+              <label class="opt"><input type="radio" name="wv"><span>Faith-based</span></label>
+            </fieldset>
+            <button type="button" class="btn btn-secondary" style="width:100%">Clear filters</button>
+          </form>
+
+          <div>
+            <p class="notice notice--info" role="status">
+              <span>Showing 24 curricula. 3 filters applied.</span>
+            </p>
+
+            <div class="grid">
+              <article class="card">
+                <div class="card-top">
+                  <div>
+                    <h3><a href="#main">Beast Academy</a></h3>
+                    <p class="pub">Art of Problem Solving</p>
+                  </div>
+                  <span class="chip">Math</span>
                 </div>
-                <span class="chip">Math</span>
-              </div>
-              <p class="rating">
-                <span class="stars" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="on"><path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z"/></svg>
-                  <svg viewBox="0 0 24 24" class="off"><path d="M22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21 12 17.3 18.2 21l-1.6-7zM12 15.4l-3.8 2.3 1-4.3-3.3-2.9 4.4-.4L12 6.1l1.7 4 4.4.4-3.3 2.9 1 4.3z"/></svg>
-                </span>
-                <b>4.2</b><span class="ct">· 87 families</span>
-                <span class="visually-hidden">4.2 out of 5 stars from 87 families</span>
-              </p>
-              <p class="desc">Incremental lessons with constant review. Divisive: parents either swear by it or bounce off it.</p>
-              <div class="chips"><span class="chip--oak chip">$$</span><span class="chip">Spiral</span><span class="chip">Faith-based</span></div>
-              <div class="span-band">
-                <p class="lbl">Grades covered</p>
-                <ol>
-                  <li>K</li><li>1</li><li>2</li><li>3</li><li class="on">4</li><li class="on">5</li>
-                  <li>6</li><li>7</li><li>8</li><li>9</li><li>10</li><li>11</li><li>12</li>
-                </ol>
-              </div>
-            </article>
+                <p class="rating">
+                  <span class="stars" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                  </span>
+                  <b>4.8</b><span class="ct">· 31 families</span>
+                  <span class="visually-hidden">4.8 out of 5 stars from 31 families</span>
+                </p>
+                <p class="desc">Comic-book style guides that make genuinely hard problem-solving feel like play.</p>
+                <div class="chips"><span class="chip--oak chip">$$$</span><span class="chip">Mastery</span><span
+                    class="chip">Secular</span></div>
+                <div class="span-band">
+                  <p class="lbl">Grades covered</p>
+                  <ol>
+                    <li>K</li>
+                    <li class="on">1</li>
+                    <li class="on">2</li>
+                    <li class="on">3</li>
+                    <li class="on">4</li>
+                    <li class="on">5</li>
+                    <li>6</li>
+                    <li>7</li>
+                    <li>8</li>
+                    <li>9</li>
+                    <li>10</li>
+                    <li>11</li>
+                    <li>12</li>
+                  </ol>
+                </div>
+              </article>
+
+              <article class="card">
+                <div class="card-top">
+                  <div>
+                    <h3><a href="#main">Saxon Math 5/4</a></h3>
+                    <p class="pub">Houghton Mifflin Harcourt</p>
+                  </div>
+                  <span class="chip">Math</span>
+                </div>
+                <p class="rating">
+                  <span class="stars" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="on">
+                      <path d="M12 17.3 18.2 21l-1.6-7L22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21z" />
+                    </svg>
+                    <svg viewBox="0 0 24 24" class="off">
+                      <path
+                        d="M22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.8L5.8 21 12 17.3 18.2 21l-1.6-7zM12 15.4l-3.8 2.3 1-4.3-3.3-2.9 4.4-.4L12 6.1l1.7 4 4.4.4-3.3 2.9 1 4.3z" />
+                    </svg>
+                  </span>
+                  <b>4.2</b><span class="ct">· 87 families</span>
+                  <span class="visually-hidden">4.2 out of 5 stars from 87 families</span>
+                </p>
+                <p class="desc">Incremental lessons with constant review. Divisive: parents either swear by it or bounce
+                  off it.</p>
+                <div class="chips"><span class="chip--oak chip">$$</span><span class="chip">Spiral</span><span
+                    class="chip">Faith-based</span></div>
+                <div class="span-band">
+                  <p class="lbl">Grades covered</p>
+                  <ol>
+                    <li>K</li>
+                    <li>1</li>
+                    <li>2</li>
+                    <li>3</li>
+                    <li class="on">4</li>
+                    <li class="on">5</li>
+                    <li>6</li>
+                    <li>7</li>
+                    <li>8</li>
+                    <li>9</li>
+                    <li>10</li>
+                    <li>11</li>
+                    <li>12</li>
+                  </ol>
+                </div>
+              </article>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section>
-      <div class="sec-head"><h2>Form states</h2><span>errors that screen readers announce</span></div>
-      <div style="max-width:520px">
-        <div class="field">
-          <label for="cn">Curriculum title</label>
-          <p class="hint" id="cn-hint">We'll match it to an existing entry if we already have one.</p>
-          <input type="text" id="cn" aria-describedby="cn-hint" value="Singapore Math Dimensions">
+      <section>
+        <div class="sec-head">
+          <h2>Form states</h2><span>errors that screen readers announce</span>
         </div>
-        <div class="field">
-          <label for="em">Email address</label>
-          <input type="email" id="em" aria-invalid="true" aria-describedby="em-err" value="sarah@">
-          <p class="err" id="em-err">Add the part after the @ — for example sarah@example.com.</p>
+        <div style="max-width:520px">
+          <div class="field">
+            <label for="cn">Curriculum title</label>
+            <p class="hint" id="cn-hint">We'll match it to an existing entry if we already have one.</p>
+            <input type="text" id="cn" aria-describedby="cn-hint" value="Singapore Math Dimensions">
+          </div>
+          <div class="field">
+            <label for="em">Email address</label>
+            <input type="email" id="em" aria-invalid="true" aria-describedby="em-err" value="sarah@">
+            <p class="err" id="em-err">Add the part after the @ — for example sarah@example.com.</p>
+          </div>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+            <button class="btn btn-primary">Save review</button>
+            <button class="btn btn-secondary">Save draft</button>
+            <button class="btn btn-accent" id="open">Open dialog</button>
+          </div>
         </div>
-        <div style="display:flex;gap:.75rem;flex-wrap:wrap">
-          <button class="btn btn-primary">Save review</button>
-          <button class="btn btn-secondary">Save draft</button>
-          <button class="btn btn-accent" id="open">Open dialog</button>
+      </section>
+
+      <section>
+        <div class="sec-head">
+          <h2>Messages</h2><span>replaces every alert()</span>
         </div>
-      </div>
-    </section>
+        <p class="notice notice--success" role="status">Review published. It's live on the Singapore Math page.</p>
+        <p class="notice notice--error" role="alert">Couldn't save. Check your connection and try again — your draft is
+          kept.</p>
+      </section>
 
-    <section>
-      <div class="sec-head"><h2>Messages</h2><span>replaces every alert()</span></div>
-      <p class="notice notice--success" role="status">Review published. It's live on the Singapore Math page.</p>
-      <p class="notice notice--error" role="alert">Couldn't save. Check your connection and try again — your draft is kept.</p>
-    </section>
+      <section>
+        <div class="sec-head">
+          <h2>Palette</h2><span>every value contrast-tested</span>
+        </div>
+        <div class="sw">
+          <div><span class="dot"
+              style="background:var(--brand-fill)"></span><b>Brand</b><code>--brand-fill</code><br><span
+              class="ratio">11.8:1</span> on fill</div>
+          <div><span class="dot" style="background:var(--oak-text)"></span><b>Oak,
+              text-safe</b><code>--oak-text</code><br><span class="ratio">6.3:1</span> on card</div>
+          <div><span class="dot" style="background:var(--oak-decor)"></span><b>Oak,
+              decorative</b><code>--oak-decor</code><br>rules &amp; fills only</div>
+          <div><span class="dot" style="background:var(--star)"></span><b>Star</b><code>--star</code><br><span
+              class="ratio">4.9:1</span> on card</div>
+          <div><span class="dot" style="background:var(--ink-muted)"></span><b>Muted
+              text</b><code>--ink-muted</code><br><span class="ratio">6.3:1</span> on page</div>
+          <div><span class="dot" style="background:var(--line-strong)"></span><b>Control
+              border</b><code>--line-strong</code><br><span class="ratio">4.5:1</span> on card</div>
+          <div><span class="dot" style="background:var(--danger)"></span><b>Error</b><code>--danger</code><br><span
+              class="ratio">7.7:1</span> on card</div>
+          <div><span class="dot" style="background:var(--success)"></span><b>Success</b><code>--success</code><br><span
+              class="ratio">7.5:1</span> on card</div>
+        </div>
+      </section>
 
-    <section>
-      <div class="sec-head"><h2>Palette</h2><span>every value contrast-tested</span></div>
-      <div class="sw">
-        <div><span class="dot" style="background:var(--brand-fill)"></span><b>Brand</b><code>--brand-fill</code><br><span class="ratio">11.8:1</span> on fill</div>
-        <div><span class="dot" style="background:var(--oak-text)"></span><b>Oak, text-safe</b><code>--oak-text</code><br><span class="ratio">6.3:1</span> on card</div>
-        <div><span class="dot" style="background:var(--oak-decor)"></span><b>Oak, decorative</b><code>--oak-decor</code><br>rules &amp; fills only</div>
-        <div><span class="dot" style="background:var(--star)"></span><b>Star</b><code>--star</code><br><span class="ratio">4.9:1</span> on card</div>
-        <div><span class="dot" style="background:var(--ink-muted)"></span><b>Muted text</b><code>--ink-muted</code><br><span class="ratio">6.3:1</span> on page</div>
-        <div><span class="dot" style="background:var(--line-strong)"></span><b>Control border</b><code>--line-strong</code><br><span class="ratio">4.5:1</span> on card</div>
-        <div><span class="dot" style="background:var(--danger)"></span><b>Error</b><code>--danger</code><br><span class="ratio">7.7:1</span> on card</div>
-        <div><span class="dot" style="background:var(--success)"></span><b>Success</b><code>--success</code><br><span class="ratio">7.5:1</span> on card</div>
-      </div>
-    </section>
-
-    <p style="font-size:var(--text-sm);color:var(--ink-muted)">
-      Try it: press <kbd>Tab</kbd> through the page to see focus rings, toggle the theme,
-      and zoom to 400% — nothing should scroll sideways.
-    </p>
-  </main>
-</div>
-
-<dialog id="dlg" aria-labelledby="dlg-t">
-  <div class="dh">
-    <h3 id="dlg-t">Add a curriculum review</h3>
-    <button class="iconbtn" id="close" aria-label="Close dialog">&times;</button>
+      <p style="font-size:var(--text-sm);color:var(--ink-muted)">
+        Try it: press <kbd>Tab</kbd> through the page to see focus rings, toggle the theme,
+        and zoom to 400% — nothing should scroll sideways.
+      </p>
+    </main>
   </div>
-  <div class="db">
-    <p style="font-size:var(--text-sm);color:var(--ink-muted)">
-      This is a native <code>&lt;dialog&gt;</code>. It traps focus, closes on Escape, hides the
-      background from screen readers, and returns focus to the button that opened it — none of
-      which your current modals do.
-    </p>
-  </div>
-  <div class="df">
-    <button class="btn btn-secondary" id="cancel">Cancel</button>
-    <button class="btn btn-primary">Continue</button>
-  </div>
-</dialog>
 
-<script>
-  const root = document.documentElement;
-  document.querySelectorAll('input[name=theme]').forEach(r => {
-    r.addEventListener('change', () => root.setAttribute('data-theme', r.value));
-  });
-  const dlg = document.getElementById('dlg');
-  document.getElementById('open').onclick = () => dlg.showModal();
-  document.getElementById('close').onclick = () => dlg.close();
-  document.getElementById('cancel').onclick = () => dlg.close();
-</script>
+  <dialog id="dlg" aria-labelledby="dlg-t">
+    <div class="dh">
+      <h3 id="dlg-t">Add a curriculum review</h3>
+      <button class="iconbtn" id="close" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="db">
+      <p style="font-size:var(--text-sm);color:var(--ink-muted)">
+        This is a native <code>&lt;dialog&gt;</code>. It traps focus, closes on Escape, hides the
+        background from screen readers, and returns focus to the button that opened it — none of
+        which your current modals do.
+      </p>
+    </div>
+    <div class="df">
+      <button class="btn btn-secondary" id="cancel">Cancel</button>
+      <button class="btn btn-primary">Continue</button>
+    </div>
+  </dialog>
+
+  <script>
+    const root = document.documentElement;
+    document.querySelectorAll('input[name=theme]').forEach(r => {
+      r.addEventListener('change', () => root.setAttribute('data-theme', r.value));
+    });
+    const dlg = document.getElementById('dlg');
+    document.getElementById('open').onclick = () => dlg.showModal();
+    document.getElementById('close').onclick = () => dlg.close();
+    document.getElementById('cancel').onclick = () => dlg.close();
+  </script>
 </body>
+
 </html>
