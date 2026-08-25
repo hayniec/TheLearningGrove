@@ -48,7 +48,9 @@ import {
   isSiteOwner,
   isModeratorOrOwner,
   SITE_OWNER_EMAILS,
-  hashPassword
+  hashPassword,
+  updateUserProfile,
+  changeUserPassword
 } from './supabaseClient';
 
 // --- INLINE SVG ICONS (PREMIUM, ZERO-LATENCY) ---
@@ -246,6 +248,12 @@ export default function App() {
   const [coParentError, setCoParentError] = useState(null);
   const [coParentSuccess, setCoParentSuccess] = useState(null);
   const [pendingResources, setPendingResources] = useState([]);
+  const [accountActiveTab, setAccountActiveTab] = useState('profile');
+  const [showPasswordInAuth, setShowPasswordInAuth] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', email: '', bio: '', stateRegion: '' });
+  const [profileMsg, setProfileMsg] = useState(null);
+  const [changePasswordForm, setChangePasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordMsg, setPasswordMsg] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const [authForm, setAuthForm] = useState({ email: '', password: '', name: '' });
@@ -932,6 +940,50 @@ export default function App() {
     }
     setRoleUpdateMsg("Role permissions updated successfully!");
     setTimeout(() => setRoleUpdateMsg(null), 3000);
+  };
+
+    const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setProfileMsg(null);
+    try {
+      const updated = await updateUserProfile(currentUser.id, profileForm);
+      const mergedUser = { ...currentUser, ...updated };
+      setCurrentUser(mergedUser);
+      localStorage.setItem('grove_user', JSON.stringify(mergedUser));
+      setProfileMsg({ kind: 'success', text: 'Profile updated successfully!' });
+      setTimeout(() => setProfileMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setProfileMsg({ kind: 'error', text: err.message || 'Failed to update profile.' });
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setPasswordMsg(null);
+    if (!changePasswordForm.currentPassword) {
+      setPasswordMsg({ kind: 'error', text: 'Please enter your current password.' });
+      return;
+    }
+    if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+      setPasswordMsg({ kind: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+    if (changePasswordForm.newPassword.length < 6) {
+      setPasswordMsg({ kind: 'error', text: 'New password must be at least 6 characters.' });
+      return;
+    }
+    try {
+      await changeUserPassword(currentUser.id, changePasswordForm.currentPassword, changePasswordForm.newPassword);
+      setPasswordMsg({ kind: 'success', text: 'Password changed successfully!' });
+      setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setPasswordMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setPasswordMsg({ kind: 'error', text: err.message || 'Failed to change password.' });
+    }
   };
 
   const handleAuthSubmit = async (e) => {
@@ -3610,190 +3662,429 @@ export default function App() {
         </form>
       </GroveDialog>
 
-      {/* FAMILY & CHILD PROFILES MANAGEMENT MODAL */}
+            {/* USER ACCOUNT & HOUSEHOLD SETTINGS MODAL */}
       <GroveDialog
         open={showFamilyModal}
-        onClose={() => { setShowFamilyModal(false); setSubUserError(null); setSubUserSuccess(null); }}
-        title="Family & Student Profiles"
-        footer={<button className="btn btn-secondary" onClick={() => setShowFamilyModal(false)}>Close</button>}
-        width="520px"
+        onClose={() => { setShowFamilyModal(false); setSubUserError(null); setSubUserSuccess(null); setProfileMsg(null); setPasswordMsg(null); }}
+        title="User Account & Household Settings"
+        footer={<button className="btn btn-secondary" onClick={() => setShowFamilyModal(false)}>Close Settings</button>}
+        width="650px"
       >
         <div>
-          {subUserSuccess && <Notice kind="success">{subUserSuccess}</Notice>}
-          {subUserError && <Notice kind="error">{subUserError}</Notice>}
-          {coParentSuccess && <Notice kind="success">{coParentSuccess}</Notice>}
-          {coParentError && <Notice kind="error">{coParentError}</Notice>}
-
-          {/* 1. CO-PARENTS & HOUSEHOLD MANAGERS */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>👨‍👩‍👧 Household Co-Parents</h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--brand-wash, #E4EDE4)', borderRadius: '6px', border: '1.5px solid var(--line-strong, #6D7A6D)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                    {currentUser?.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{currentUser?.name}</span>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{currentUser?.email}</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.7rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
-                  ACTIVE PARENT
-                </span>
-              </li>
-              {coParents.filter(p => p.id !== currentUser?.id).map(cop => (
-                <li key={cop.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                      {cop.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{cop.name}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{cop.email}</div>
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', background: 'var(--brand-wash, #E4EDE4)', color: 'var(--brand, #1E3F20)', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
-                    LINKED CO-PARENT
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <form onSubmit={handleLinkCoParentSubmit} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--ink, #1B201C)', display: 'block', marginBottom: '2px' }}>Link Another Parent Account by Email</label>
-                <input 
-                  type="email" 
-                  placeholder="e.g. spouse@example.com" 
-                  required
-                  value={coParentEmailInput}
-                  onChange={(e) => setCoParentEmailInput(e.target.value)}
-                  style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', fontSize: '0.85rem' }}
-                />
-              </div>
-              <button type="submit" className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                🔗 Link Co-Parent
-              </button>
-            </form>
-          </div>
-
-          <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1rem 0' }} />
-
-          {/* 2. STUDENT PROFILES */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>🎒 Household Student Profiles</h4>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {subUsers.map(sub => (
-                <li key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--oak-text, #8A5320)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                      {sub.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{sub.name}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{sub.email}</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => {
-                        localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
-                        setCurrentUser(sub);
-                        setShowFamilyModal(false);
-                      }}
-                      style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                    >
-                      Switch Profile
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={async () => {
-                        if (window.confirm(`Are you sure you want to remove ${sub.name}'s student profile?`)) {
-                          await deleteSubUser(sub.id);
-                          setSubUsers(prev => prev.filter(s => s.id !== sub.id));
-                          setSubUserSuccess(`Removed student profile "${sub.name}".`);
-                        }
-                      }}
-                      style={{ fontSize: '0.75rem', padding: '2px 8px', background: 'var(--danger-wash, #FBE9E7)', color: 'var(--danger, #A0201A)', border: '1px solid var(--danger, #A0201A)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
-                    >
-                      🗑️ Remove
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {subUsers.length === 0 && (
-                <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>No student profiles added yet. Create one below!</p>
-              )}
-            </ul>
-          </div>
-
-          <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.75rem', fontWeight: '700' }}>Add Child or Student Profile</h4>
-          <form onSubmit={handleNewSubUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <Field id="sub-name" label="Child's Full Name" required>
-              <input 
-                type="text" 
-                placeholder="e.g. Emmett H" 
-                value={newSubUserForm.name}
-                onChange={(e) => setNewSubUserForm(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </Field>
-            <Field id="sub-email" label="Child's Email (used to log in)" required>
-              <input 
-                type="email" 
-                placeholder="e.g. emmett@example.com" 
-                value={newSubUserForm.email}
-                onChange={(e) => setNewSubUserForm(prev => ({ ...prev, email: e.target.value }))}
-              />
-            </Field>
-            <Field id="sub-pass" label="Child's Password" required>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={newSubUserForm.password}
-                onChange={(e) => setNewSubUserForm(prev => ({ ...prev, password: e.target.value }))}
-              />
-            </Field>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
-              Create Student Profile
-            </button>
-          </form>
-
-          <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1.5rem 0 1rem 0' }} />
-
-          {/* 3. DANGER ZONE: ACCOUNT DELETION */}
-          <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--danger-wash, #FBE9E7)', border: '1px solid var(--danger, #A0201A)' }}>
-            <h4 style={{ fontSize: '0.85rem', color: 'var(--danger, #A0201A)', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
-              ⚠️ Danger Zone: Delete Account & Data
-            </h4>
-            <p style={{ fontSize: '0.75rem', color: 'var(--ink-muted, #556056)', margin: '0 0 0.75rem 0', lineHeight: '1.4' }}>
-              Permanently delete your parent account and any linked student profiles. This action cannot be undone.
-            </p>
+          {/* Account Sub-Tabs Header */}
+          <div style={{ display: 'flex', gap: '0.4rem', borderBottom: '2px solid var(--line-subtle, #DEE3DD)', marginBottom: '1.25rem', paddingBottom: '0.5rem', overflowX: 'auto' }}>
             <button
               type="button"
-              className="btn btn-sm"
-              onClick={async () => {
-                if (window.confirm(`Are you sure you want to permanently delete your parent account (${currentUser?.email}) and all linked child profiles? This action cannot be undone.`)) {
-                  await deleteUserAccount(currentUser.id);
-                  localStorage.removeItem('grove_user');
-                  localStorage.removeItem('grove_parent_user');
-                  setCurrentUser(null);
-                  setSubUsers([]);
-                  setShowFamilyModal(false);
-                  alert("Your account and linked family data have been permanently deleted.");
-                }
+              onClick={() => setAccountActiveTab('profile')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                border: 'none',
+                background: accountActiveTab === 'profile' ? 'var(--brand, #1E3F20)' : 'var(--surface-raised, #F3F1EC)',
+                color: accountActiveTab === 'profile' ? '#FFFFFF' : 'var(--ink, #1B201C)',
+                fontWeight: '700',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
               }}
-              style={{ background: 'var(--danger, #A0201A)', color: '#FFFFFF', border: 'none', fontWeight: '700', fontSize: '0.75rem', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
             >
-              🗑️ Delete My Account & Household Data
+              👤 My Profile
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountActiveTab('family')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                border: 'none',
+                background: accountActiveTab === 'family' ? 'var(--brand, #1E3F20)' : 'var(--surface-raised, #F3F1EC)',
+                color: accountActiveTab === 'family' ? '#FFFFFF' : 'var(--ink, #1B201C)',
+                fontWeight: '700',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              👨‍gsub‍👧‍👦 Family & Students ({subUsers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountActiveTab('activity')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                border: 'none',
+                background: accountActiveTab === 'activity' ? 'var(--brand, #1E3F20)' : 'var(--surface-raised, #F3F1EC)',
+                color: accountActiveTab === 'activity' ? '#FFFFFF' : 'var(--ink, #1B201C)',
+                fontWeight: '700',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              📜 My Activity
+            </button>
+            <button
+              type="button"
+              onClick={() => setAccountActiveTab('security')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '20px',
+                border: 'none',
+                background: accountActiveTab === 'security' ? 'var(--brand, #1E3F20)' : 'var(--surface-raised, #F3F1EC)',
+                color: accountActiveTab === 'security' ? '#FFFFFF' : 'var(--ink, #1B201C)',
+                fontWeight: '700',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🛡️ Security & Roles
             </button>
           </div>
+
+          {/* TAB 1: PROFILE MANAGEMENT */}
+          {accountActiveTab === 'profile' && (
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {profileMsg && <Notice kind={profileMsg.kind}>{profileMsg.text}</Notice>}
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'var(--brand-wash, #E4EDE4)', borderRadius: '10px', border: '1px solid var(--line-strong, #6D7A6D)' }}>
+                <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: '800' }}>
+                  {profileForm.name ? profileForm.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--brand, #1E3F20)', fontWeight: '800' }}>{currentUser?.name}</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--ink-muted, #556056)' }}>{currentUser?.email}</p>
+                  <span style={{ fontSize: '0.7rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', padding: '2px 8px', borderRadius: '12px', fontWeight: '800', display: 'inline-block', marginTop: '4px' }}>
+                    {currentUser?.role || 'Parent'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <Field id="edit-name" label="Display Name" required>
+                  <input
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </Field>
+                <Field id="edit-email" label="Email Address" required>
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </Field>
+              </div>
+
+              <Field id="edit-state" label="State / Region (e.g., Georgia / Metro Atlanta)">
+                <input
+                  type="text"
+                  placeholder="e.g. North Georgia / Roswell"
+                  value={profileForm.stateRegion || ''}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, stateRegion: e.target.value }))}
+                />
+              </Field>
+
+              <Field id="edit-bio" label="Homeschooling Philosophy / Bio">
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  placeholder="Share a short bio or homeschooling method (Charlotte Mason, Classical, Unschooling...)"
+                  value={profileForm.bio || ''}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                />
+              </Field>
+
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+                💾 Save Profile Changes
+              </button>
+            </form>
+          )}
+
+          {/* TAB 2: FAMILY & STUDENTS */}
+          {accountActiveTab === 'family' && (
+            <div>
+              {subUserSuccess && <Notice kind="success">{subUserSuccess}</Notice>}
+              {subUserError && <Notice kind="error">{subUserError}</Notice>}
+              {coParentSuccess && <Notice kind="success">{coParentSuccess}</Notice>}
+              {coParentError && <Notice kind="error">{coParentError}</Notice>}
+
+              {/* CO-PARENTS SECTION */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>🏡 Linked Co-Parents & Household Managers</h4>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--brand-wash, #E4EDE4)', borderRadius: '6px', border: '1px solid var(--line-strong, #6D7A6D)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                        {currentUser?.name?.charAt(0)?.toUpperCase() || 'P'}
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{currentUser?.name}</span>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{currentUser?.email}</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', background: 'var(--oak-wash, #F6EADC)', color: 'var(--oak-text, #8A5320)', padding: '2px 8px', borderRadius: '12px', fontWeight: '800' }}>
+                      ACTIVE PARENT
+                    </span>
+                  </li>
+                  {coParents.filter(p => p.id !== currentUser?.id).map(cop => (
+                    <li key={cop.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--brand, #1E3F20)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                          {cop.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{cop.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{cop.email}</div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', background: 'var(--brand-wash, #E4EDE4)', color: 'var(--brand, #1E3F20)', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                        LINKED CO-PARENT
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <form onSubmit={handleLinkCoParentSubmit} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--ink, #1B201C)', display: 'block', marginBottom: '2px' }}>Link Co-Parent Account by Email</label>
+                    <input 
+                      type="email" 
+                      placeholder="spouse@example.com" 
+                      required
+                      value={coParentEmailInput}
+                      onChange={(e) => setCoParentEmailInput(e.target.value)}
+                      style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid var(--line-strong, #6D7A6D)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    🔗 Link Co-Parent
+                  </button>
+                </form>
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)', margin: '1rem 0' }} />
+
+              {/* STUDENT PROFILES */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.5rem', fontWeight: '700' }}>🎒 Household Student Profiles</h4>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {subUsers.map(sub => (
+                    <li key={sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px', border: '1px solid var(--line-subtle, #DEE3DD)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--oak-text, #8A5320)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                          {sub.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: 'var(--ink, #1B201C)' }}>{sub.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--ink-muted, #556056)' }}>{sub.email}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => {
+                            localStorage.setItem('grove_parent_user', JSON.stringify(currentUser));
+                            setCurrentUser(sub);
+                            setShowFamilyModal(false);
+                          }}
+                          style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                        >
+                          Switch Profile
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={async () => {
+                            if (window.confirm(`Are you sure you want to remove ${sub.name}'s student profile?`)) {
+                              await deleteSubUser(sub.id);
+                              setSubUsers(prev => prev.filter(s => s.id !== sub.id));
+                              setSubUserSuccess(`Removed student profile "${sub.name}".`);
+                            }
+                          }}
+                          style={{ fontSize: '0.75rem', padding: '2px 8px', background: 'var(--danger-wash, #FBE9E7)', color: 'var(--danger, #A0201A)', border: '1px solid var(--danger, #A0201A)', borderRadius: '4px', cursor: 'pointer', fontWeight: '700' }}
+                        >
+                          🗑️ Remove
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                  {subUsers.length === 0 && (
+                    <p style={{ color: 'var(--ink-muted, #556056)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>No student profiles added yet. Create one below!</p>
+                  )}
+                </ul>
+              </div>
+
+              <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', marginBottom: '0.75rem', fontWeight: '700' }}>Add Child or Student Profile</h4>
+              <form onSubmit={handleNewSubUserSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Field id="sub-name" label="Child's Full Name" required>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Emmett H" 
+                    value={newSubUserForm.name}
+                    onChange={(e) => setNewSubUserForm(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </Field>
+                <Field id="sub-email" label="Child's Email (used to log in)" required>
+                  <input 
+                    type="email" 
+                    placeholder="e.g. emmett@example.com" 
+                    value={newSubUserForm.email}
+                    onChange={(e) => setNewSubUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </Field>
+                <Field id="sub-pass" label="Child's Password" required>
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={newSubUserForm.password}
+                    onChange={(e) => setNewSubUserForm(prev => ({ ...prev, password: e.target.value }))}
+                  />
+                </Field>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }}>
+                  Create Student Profile
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* TAB 3: USER ACTIVITY & SUBMISSIONS */}
+          {accountActiveTab === 'activity' && (
+            <div>
+              <h4 style={{ fontSize: '0.95rem', color: 'var(--brand, #1E3F20)', marginBottom: '0.75rem', fontWeight: '800' }}>
+                📜 Your Posts & Contributions
+              </h4>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '350px', overflowY: 'auto' }}>
+                <div>
+                  <h5 style={{ fontSize: '0.85rem', color: 'var(--ink, #1B201C)', marginBottom: '0.4rem', fontWeight: '700' }}>
+                    🌲 Field Trips Shared
+                  </h5>
+                  {fieldTrips.filter(t => t.submittedBy === currentUser?.name || t.userId === currentUser?.id).length === 0 ? (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)', fontStyle: 'italic' }}>No field trips submitted yet.</p>
+                  ) : (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {fieldTrips.filter(t => t.submittedBy === currentUser?.name || t.userId === currentUser?.id).map(t => (
+                        <li key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--brand, #1E3F20)' }}>{t.title}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTrip(t.id)}
+                            style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}
+                          >
+                            🗑️ Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <h5 style={{ fontSize: '0.85rem', color: 'var(--ink, #1B201C)', marginBottom: '0.4rem', fontWeight: '700' }}>
+                    💼 Business & Service Listings
+                  </h5>
+                  {businessAds.filter(a => a.submittedBy === currentUser?.name || a.userId === currentUser?.id).length === 0 ? (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted, #556056)', fontStyle: 'italic' }}>No business ads listed yet.</p>
+                  ) : (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {businessAds.filter(a => a.submittedBy === currentUser?.name || a.userId === currentUser?.id).map(a => (
+                        <li key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--surface-raised, #F3F1EC)', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--brand, #1E3F20)' }}>{a.businessName} ({a.category})</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAd(a.id)}
+                            style={{ background: 'none', border: 'none', color: 'var(--danger, #A0201A)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: '700' }}
+                          >
+                            🗑️ Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: SECURITY & ROLES */}
+          {accountActiveTab === 'security' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <h4 style={{ fontSize: '0.9rem', color: 'var(--ink, #1B201C)', margin: '0 0 0.5rem 0', fontWeight: '700' }}>
+                  🔑 Change Password
+                </h4>
+                <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {passwordMsg && <Notice kind={passwordMsg.kind}>{passwordMsg.text}</Notice>}
+                  <Field id="curr-pass" label="Current Password" required>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={changePasswordForm.currentPassword}
+                      onChange={(e) => setChangePasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                    />
+                  </Field>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <Field id="new-pass" label="New Password" required>
+                      <input
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={changePasswordForm.newPassword}
+                        onChange={(e) => setChangePasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      />
+                    </Field>
+                    <Field id="conf-pass" label="Confirm New Password" required>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={changePasswordForm.confirmPassword}
+                        onChange={(e) => setChangePasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      />
+                    </Field>
+                  </div>
+                  <button type="submit" className="btn btn-secondary" style={{ width: '100%', marginTop: '0.25rem' }}>
+                    🔒 Update Password
+                  </button>
+                </form>
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--line-subtle, #DEE3DD)' }} />
+
+              {/* DANGER ZONE: ACCOUNT DELETION */}
+              <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--danger-wash, #FBE9E7)', border: '1px solid var(--danger, #A0201A)' }}>
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--danger, #A0201A)', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
+                  ⚠️ Danger Zone: Delete Account & Data
+                </h4>
+                <p style={{ fontSize: '0.75rem', color: 'var(--ink-muted, #556056)', margin: '0 0 0.75rem 0', lineHeight: '1.4' }}>
+                  Permanently delete your account and any linked family profiles. This action cannot be undone.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={async () => {
+                    if (window.confirm(`Are you sure you want to permanently delete your parent account (${currentUser?.email}) and all linked child profiles? This action cannot be undone.`)) {
+                      await deleteUserAccount(currentUser.id);
+                      localStorage.removeItem('grove_user');
+                      localStorage.removeItem('grove_parent_user');
+                      setCurrentUser(null);
+                      setSubUsers([]);
+                      setShowFamilyModal(false);
+                      alert("Your account and linked family data have been permanently deleted.");
+                    }
+                  }}
+                  style={{ background: 'var(--danger, #A0201A)', color: '#FFFFFF', border: 'none', fontWeight: '700', fontSize: '0.75rem', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  🗑️ Delete My Account & Household Data
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </GroveDialog>
-
-      {/* 7. CURRICULUM DETAIL VIEW */}
+{/* 7. CURRICULUM DETAIL VIEW */}
       <GroveDialog
         open={!!selectedCurriculumDetail}
         onClose={() => setSelectedCurriculumDetail(null)}

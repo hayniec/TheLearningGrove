@@ -1191,3 +1191,62 @@ export async function updateUserRolePermissions(userId, primaryRole, assignedRol
 
   return { id: userId, role: primaryRole, assignedRoles };
 }
+
+// --- USER ACCOUNT & PROFILE MANAGEMENT ---
+export async function updateUserProfile(userId, updates) {
+  const payload = {
+    name: updates.name,
+    email: updates.email,
+    bio: updates.bio || '',
+    stateRegion: updates.stateRegion || ''
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update(payload)
+      .eq('id', userId)
+      .select()
+      .maybeSingle();
+
+    if (error) console.warn("updateUserProfile DB warning:", error);
+    if (data) return data;
+  } catch (err) {
+    console.warn("updateUserProfile exception:", err);
+  }
+
+  // Update in local storage custom users fallback
+  const localCustom = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');
+  const updatedLocal = localCustom.map(u => u.id === userId ? { ...u, ...payload } : u);
+  localStorage.setItem('grove_custom_users', JSON.stringify(updatedLocal));
+
+  return { id: userId, ...payload };
+}
+
+export async function changeUserPassword(userId, currentPassword, newPassword) {
+  const oldHashed = await hashPassword(currentPassword);
+  const newHashed = await hashPassword(newPassword);
+
+  let { data: user } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+  
+  if (user && user.password && user.password !== oldHashed) {
+    throw new Error("Current password does not match.");
+  }
+
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ password: newHashed })
+      .eq('id', userId);
+    if (error) console.warn("changeUserPassword DB warning:", error);
+  } catch (err) {
+    console.warn("changeUserPassword exception:", err);
+  }
+
+  // Update local custom users fallback
+  const localCustom = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');
+  const updatedLocal = localCustom.map(u => u.id === userId ? { ...u, password: newHashed } : u);
+  localStorage.setItem('grove_custom_users', JSON.stringify(updatedLocal));
+
+  return true;
+}
