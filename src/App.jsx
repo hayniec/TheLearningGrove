@@ -484,6 +484,17 @@ export default function App() {
 
   // Fetch subusers and pending resources based on login status
   useEffect(() => {
+    if (showFamilyModal && currentUser) {
+      setProfileForm({
+        name: currentUser.name || '',
+        email: currentUser.email || '',
+        bio: currentUser.bio || '',
+        stateRegion: currentUser.stateRegion || ''
+      });
+    }
+  }, [showFamilyModal, currentUser]);
+
+  useEffect(() => {
     if (currentUser) {
       localStorage.setItem('grove_user', JSON.stringify(currentUser));
       if (currentUser.role === 'Parent') {
@@ -3705,7 +3716,7 @@ export default function App() {
                 transition: 'all 0.2s ease'
               }}
             >
-              👨‍gsub‍👧‍👦 Family & Students ({subUsers.length})
+              👨‍👩‍👧‍👦 Family & Students ({subUsers.length})
             </button>
             <button
               type="button"

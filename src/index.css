@@ -1510,3 +1510,35 @@ textarea {
   /* Warm brown-grey */
   color: #4e342e;
 }
+
+/* HIGH-CONTRAST FORM CONTROLS & INPUT STYLING (LIGHT & DARK THEME) */
+.form-control,
+.field__input,
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--line-strong, #6D7A6D);
+  border-radius: 6px;
+  background-color: var(--surface-card, #FFFFFF);
+  color: var(--ink, #1B201C);
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .field__input,
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #242C25 !important;
+  color: #F3F1EC !important;
+  border-color: #4A564B !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #8C998D !important;
+}

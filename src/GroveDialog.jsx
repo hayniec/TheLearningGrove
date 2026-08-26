@@ -123,6 +123,7 @@ export function Field({
       {children ? (
         React.cloneElement(children, {
           id,
+          className: `form-control ${children.props.className || ''}`.trim(),
           'aria-describedby': describedBy,
           'aria-invalid': error ? 'true' : undefined,
           required,
