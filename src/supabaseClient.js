@@ -118,17 +118,7 @@ export async function getCurriculumReviews(curriculumId) {
     console.warn("getCurriculumReviews exception:", err);
   }
 
-  const defaultSampleReviews = [
-    {
-      id: `rev-sample-${curriculumId}-1`,
-      curriculumId,
-      userName: 'Sarah Jenkins',
-      rating: 5,
-      favoritePart: 'Engaging approach that children genuinely look forward to every day.',
-      description: 'We have used this curriculum for two school years now and it has transformed our homeschool routine!',
-      createdAt: Date.now() - 86400000 * 5
-    }
-  ];
+  const defaultSampleReviews = [];
 
   const map = new Map();
   defaultSampleReviews.forEach(r => map.set(r.id, r));
@@ -285,47 +275,7 @@ export async function getFieldTrips() {
     console.warn("getFieldTrips exception:", err);
   }
 
-  const defaultSampleFieldTrips = [
-    {
-      id: 'trip-1',
-      name: 'Fernbank Museum of Natural History & Giant Screen Theater',
-      subject: 'Science',
-      cost: 'Free (Donation Encouraged)',
-      rating: 5,
-      description: 'Explore prehistoric dinosaur halls, hands-on science discovery rooms, and outdoor forest trails.',
-      location: '767 Clifton Rd, Atlanta, GA 30307',
-      city: 'Atlanta',
-      state: 'GA',
-      zip: '30307',
-      gradeRecommendation: 'All Ages / Family Outing'
-    },
-    {
-      id: 'trip-2',
-      name: 'Tellus Science Museum & Observatory',
-      subject: 'Science',
-      cost: 'Free Admission',
-      rating: 5,
-      description: '120,000 sq ft museum featuring fossil galleries, minerals, solar telescope observatory, and planetarium shows.',
-      location: '100 Tellus Dr, Cartersville, GA 30120',
-      city: 'Cartersville',
-      state: 'GA',
-      zip: '30120',
-      gradeRecommendation: 'Elementary (Ages 5-10)'
-    },
-    {
-      id: 'trip-3',
-      name: 'Georgia State Capitol & Educational Museum',
-      subject: 'History',
-      cost: 'Free Admission',
-      rating: 4,
-      description: 'Guided tour of the legislative chambers, historic dome, and Georgia history museum.',
-      location: '206 Washington St SW, Atlanta, GA 30334',
-      city: 'Atlanta',
-      state: 'GA',
-      zip: '30334',
-      gradeRecommendation: 'Middle (Ages 11-13)'
-    }
-  ];
+  const defaultSampleFieldTrips = [];
 
   const merged = [...localTrips, ...dbTrips];
   if (merged.length === 0) return defaultSampleFieldTrips;
@@ -368,30 +318,7 @@ export async function addFieldTrip(item) {
 // --- BUSINESS ADS ---
 export async function getBusinessAds() {
   const localAds = JSON.parse(localStorage.getItem('grove_custom_ads') || '[]');
-  const defaultSampleAds = [
-    {
-      id: 'ad-grove-tutoring',
-      owner: 'Allison Haynie',
-      businessName: 'Grove Math & Orton-Gillingham Reading Specialists',
-      description: '1-on-1 personalized tutoring for visual and neurodivergent learners. Specializing in Beast Academy math and All About Reading phonics.',
-      category: 'Tutoring Services',
-      businessType: 'Tutoring Service',
-      contact: 'tutoring@thelearninggrove.org | (404) 555-0192',
-      link: 'https://thelearninggrove.org',
-      userId: 'admin-2'
-    },
-    {
-      id: 'ad-harmony-piano',
-      owner: 'Eric Haynie',
-      businessName: 'Harmony Pines Homeschool Piano & String Studio',
-      description: 'Flexible morning and afternoon private music lessons for homeschool students. Classical, jazz, and music theory curriculum.',
-      category: 'Extracurricular Classes',
-      businessType: 'Lessons / Extracurricular',
-      contact: 'music@thelearninggrove.org | (404) 555-0188',
-      link: 'https://thelearninggrove.org',
-      userId: 'admin-3'
-    }
-  ];
+  const defaultSampleAds = [];
 
   let dbAds = [];
   try {
@@ -735,39 +662,7 @@ export async function getCommunityPosts() {
     console.warn("getCommunityPosts exception:", err);
   }
 
-  const defaultSamplePosts = [
-    {
-      id: 'post-1',
-      author: 'Sarah Jenkins',
-      role: 'PARENT',
-      title: "What is your favorite 4th-grade math curriculum for visual learners?",
-      category: 'curriculum-qa',
-      categoryLabel: '📚 Curriculum Q&A',
-      content: "My son struggles with plain textbook worksheets and benefits from visual manipulatives and short video lessons. We've looked into Beast Academy and Math-U-See. What have you found works best for visual 4th graders?",
-      tags: ['#Math', '#4thGrade', '#VisualLearners', '#BeastAcademy'],
-      likes: 12,
-      replies: [
-        { id: 'rep-1', author: 'Eric H', content: "Beast Academy is fantastic for visual problem-solving! The comic guide books keep kids engaged, and the online practice provides instant feedback.", created_at: '2 hours ago' },
-        { id: 'rep-2', author: 'Allison H', content: "Seconding Beast Academy! We also used Math-U-See blocks for tactile math concepts.", created_at: '1 hour ago' }
-      ],
-      created_at: '2026-07-28T14:00:00Z'
-    },
-    {
-      id: 'post-2',
-      author: 'David Miller',
-      role: 'PARENT',
-      title: "North Atlanta Science Museum Group Field Trip — Discount Rates Available!",
-      category: 'coops-trips',
-      categoryLabel: '🌲 Co-ops & Field Trips',
-      content: "We are organizing a group visit to the Science Museum for 15+ homeschool families on June 15th. Group admission is $8/student (normally $18). Let us know if your family would like to join!",
-      tags: ['#FieldTrips', '#Science', '#Atlanta', '#CoOp'],
-      likes: 18,
-      replies: [
-        { id: 'rep-3', author: 'Sarah Jenkins', content: "Count us in! I have two 4th graders.", created_at: '3 hours ago' }
-      ],
-      created_at: '2026-07-26T16:30:00Z'
-    }
-  ];
+  const defaultSamplePosts = [];
 
   const merged = [...localPosts, ...dbPosts];
   if (merged.length === 0) return defaultSamplePosts;
@@ -925,14 +820,84 @@ export async function deleteSubUser(childId) {
   return true;
 }
 
-export async function deleteUserAccount(userId) {
+export async function deleteUserAccount(userId, userObject) {
+  const targetId = userId;
+
+  // 1. Delete linked student/child subusers
   try {
-    await supabase.from('users').delete().eq('parentId', userId);
-    const { error } = await supabase.from('users').delete().eq('id', userId);
+    await supabase.from('users').delete().eq('parentId', targetId);
+    await supabase.from('users').delete().eq('parentid', targetId);
+  } catch (e) {
+    console.warn("deleteUserAccount subusers warning:", e);
+  }
+
+  // 2. Anonymize Curriculum Reviews
+  try {
+    await supabase
+      .from('curriculum_reviews')
+      .update({ userId: 'former-grove-parent', userName: 'Former Grove Parent' })
+      .eq('userId', targetId);
+  } catch (e) {
+    console.warn("Anonymize curriculum_reviews warning:", e);
+  }
+
+  // 3. Anonymize Field Trips
+  try {
+    await supabase
+      .from('fieldtrips')
+      .update({ userId: 'former-grove-parent', submittedBy: 'Former Grove Parent' })
+      .eq('userId', targetId);
+  } catch (e) {
+    console.warn("Anonymize fieldtrips warning:", e);
+  }
+
+  // 4. Anonymize Field Trip Reviews
+  try {
+    await supabase
+      .from('fieldtrip_reviews')
+      .update({ userId: 'former-grove-parent', userName: 'Former Grove Parent' })
+      .eq('userId', targetId);
+  } catch (e) {
+    console.warn("Anonymize fieldtrip_reviews warning:", e);
+  }
+
+  // 5. Anonymize Business Ads
+  try {
+    await supabase
+      .from('businessads')
+      .update({ userId: 'former-grove-parent', owner: 'Former Grove Parent', submittedBy: 'Former Grove Parent' })
+      .eq('userId', targetId);
+  } catch (e) {
+    console.warn("Anonymize businessads warning:", e);
+  }
+
+  // 6. Anonymize Community Posts
+  try {
+    await supabase
+      .from('communityposts')
+      .update({ userId: 'former-grove-parent', author: 'Former Grove Parent' })
+      .eq('userId', targetId);
+
+    await supabase
+      .from('posts')
+      .update({ userId: 'former-grove-parent', author: 'Former Grove Parent' })
+      .eq('userId', targetId);
+  } catch (e) {
+    console.warn("Anonymize communityposts warning:", e);
+  }
+
+  // 7. Delete User Credential Row (Scrubbing PII)
+  try {
+    const { error } = await supabase.from('users').delete().eq('id', targetId);
     if (error) console.warn("deleteUserAccount DB warning:", error);
   } catch (err) {
     console.warn("deleteUserAccount exception:", err);
   }
+
+  // Clean local custom user records
+  const localCustomUsers = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');
+  localStorage.setItem('grove_custom_users', JSON.stringify(localCustomUsers.filter(u => u.id !== targetId && u.parentId !== targetId && u.parentid !== targetId)));
+
   return true;
 }
 
@@ -1156,9 +1121,10 @@ export async function getAllUsers() {
   }
 
   const defaultUsers = [
-    { id: 'parent-1', name: 'Jane Doe', email: 'jane@example.com', role: 'Parent', assignedRoles: ['Parent'] },
-    { id: 'mod-1', name: 'Sarah Miller', email: 'sarah.moderator@thelearninggrove.org', role: 'Moderator', assignedRoles: ['Parent', 'Moderator'] },
-    { id: 'admin-1', name: 'Erich (Site Owner)', email: 'owner@thelearninggrove.org', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] }
+    { id: 'admin-eric-haynie', name: 'Eric Haynie', email: 'eric.haynie@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
+    { id: 'admin-erichaney', name: 'Eric Haney', email: 'erichaney@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
+    { id: 'admin-alison-haney', name: 'Alison Haney', email: 'alisonhaney35@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
+    { id: 'admin-allison-haynie', name: 'Allison Haynie', email: 'allison.haynie35@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] }
   ];
 
   const localCustom = JSON.parse(localStorage.getItem('grove_custom_users') || '[]');

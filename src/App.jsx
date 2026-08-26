@@ -165,52 +165,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
 
   // Community Forum State
-  const initialSamplePosts = [
-    {
-      id: 'post-1',
-      author: 'Sarah Jenkins',
-      role: 'PARENT',
-      title: "What is your favorite 4th-grade math curriculum for visual learners?",
-      category: 'curriculum-qa',
-      categoryLabel: '📚 Curriculum Q&A',
-      content: "My son struggles with plain textbook worksheets and benefits from visual manipulatives and short video lessons. We've looked into Beast Academy and Math-U-See. What have you found works best for visual 4th graders?",
-      tags: ['#Math', '#4thGrade', '#VisualLearners', '#BeastAcademy'],
-      likes: 12,
-      replies: [
-        { id: 'rep-1', author: 'Eric H', content: "Beast Academy is fantastic for visual problem-solving! The comic guide books keep kids engaged, and the online practice provides instant feedback.", created_at: '2 hours ago' },
-        { id: 'rep-2', author: 'Allison H', content: "Seconding Beast Academy! We also used Math-U-See blocks for tactile math concepts.", created_at: '1 hour ago' }
-      ],
-      created_at: '2026-07-28T14:00:00Z'
-    },
-    {
-      id: 'post-2',
-      author: 'David Miller',
-      role: 'PARENT',
-      title: "North Atlanta Science Museum Group Field Trip — Discount Rates Available!",
-      category: 'coops-trips',
-      categoryLabel: '🌲 Co-ops & Field Trips',
-      content: "We are organizing a group visit to the Science Museum for 15+ homeschool families on June 15th. Group admission is $8/student (normally $18). Let us know if your family would like to join!",
-      tags: ['#FieldTrips', '#Science', '#Atlanta', '#CoOp'],
-      likes: 18,
-      replies: [
-        { id: 'rep-3', author: 'Sarah Jenkins', content: "Count us in! I have two 4th graders.", created_at: '3 hours ago' }
-      ],
-      created_at: '2026-07-27T10:00:00Z'
-    },
-    {
-      id: 'post-3',
-      author: 'Allison H',
-      role: 'PARENT',
-      title: "High School College Prep: How do you format homeschool transcripts?",
-      category: 'prep',
-      categoryLabel: '🎓 High School & College Prep',
-      content: "As my daughter enters 9th grade, I want to make sure our course descriptions and GPA tracking align with college admissions requirements. What tools or templates do you use?",
-      tags: ['#HighSchool', '#CollegePrep', '#Transcripts', '#9thGrade'],
-      likes: 9,
-      replies: [],
-      created_at: '2026-07-26T16:30:00Z'
-    }
-  ];
+  const initialSamplePosts = [];
 
   const [posts, setPosts] = useState(initialSamplePosts);
   const [showRulesModal, setShowRulesModal] = useState(false);
