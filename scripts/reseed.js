@@ -33,22 +33,6 @@ async function reseed() {
       assignedRoles: ['Admin', 'Moderator', 'Parent']
     },
     {
-      id: 'admin-erichaney',
-      email: 'erichaney@gmail.com',
-      password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3',
-      name: 'Eric Haney',
-      role: 'Admin',
-      assignedRoles: ['Admin', 'Moderator', 'Parent']
-    },
-    {
-      id: 'admin-alison-haney',
-      email: 'alisonhaney35@gmail.com',
-      password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3',
-      name: 'Alison Haney',
-      role: 'Admin',
-      assignedRoles: ['Admin', 'Moderator', 'Parent']
-    },
-    {
       id: 'admin-allison-haynie',
       email: 'allison.haynie35@gmail.com',
       password: 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3',

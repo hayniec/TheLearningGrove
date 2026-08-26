@@ -141,6 +141,4 @@ CREATE TABLE resources (
 -- b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3
 INSERT INTO users (id, email, password, name, role, "assignedRoles", "parentId") VALUES
 ('admin-eric-haynie', 'eric.haynie@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Eric Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
-('admin-erichaney', 'erichaney@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Eric Haney', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
-('admin-alison-haney', 'alisonhaney35@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Alison Haney', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL),
 ('admin-allison-haynie', 'allison.haynie35@gmail.com', 'b561d1660c5b9d5526050b73aab5e88c87299175f0b1e8144bbcdb7681cd11d3', 'Allison Haynie', 'Admin', ARRAY['Admin', 'Moderator', 'Parent'], NULL);

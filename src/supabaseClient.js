@@ -224,14 +224,10 @@ export const SITE_OWNER_EMAILS = [
   'owner@thelearninggrove.org',
   'admin@thelearninggrove.org',
   'hostingsite.wanting320@passmail.net',
-  'alisonhaney35@gmail.com',
-  'alisonhaney35@gmail',
   'allison.haynie35@gmail.com',
   'allison.haynie35@gmail',
   'eric.haynie@gmail.com',
-  'eric.haynie@gmail',
-  'erichaney@gmail.com',
-  'erichaney@gmail'
+  'eric.haynie@gmail'
 ];
 
 export function isSiteOwner(user) {
@@ -428,20 +424,6 @@ export async function getUserByEmail(email) {
       id: 'admin-eric-haynie',
       email: 'eric.haynie@gmail.com',
       name: 'Eric Haynie',
-      role: 'Admin',
-      assignedRoles: ['Admin', 'Moderator', 'Parent']
-    },
-    {
-      id: 'admin-erichaney',
-      email: 'erichaney@gmail.com',
-      name: 'Eric Haney',
-      role: 'Admin',
-      assignedRoles: ['Admin', 'Moderator', 'Parent']
-    },
-    {
-      id: 'admin-alison-haney',
-      email: 'alisonhaney35@gmail.com',
-      name: 'Alison Haney',
       role: 'Admin',
       assignedRoles: ['Admin', 'Moderator', 'Parent']
     },
@@ -1122,8 +1104,6 @@ export async function getAllUsers() {
 
   const defaultUsers = [
     { id: 'admin-eric-haynie', name: 'Eric Haynie', email: 'eric.haynie@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
-    { id: 'admin-erichaney', name: 'Eric Haney', email: 'erichaney@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
-    { id: 'admin-alison-haney', name: 'Alison Haney', email: 'alisonhaney35@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] },
     { id: 'admin-allison-haynie', name: 'Allison Haynie', email: 'allison.haynie35@gmail.com', role: 'Admin', assignedRoles: ['Admin', 'Moderator', 'Parent'] }
   ];
 

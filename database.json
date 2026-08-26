@@ -12,28 +12,6 @@
       ]
     },
     {
-      "id": "admin-erichaney",
-      "email": "erichaney@gmail.com",
-      "name": "Eric Haney",
-      "role": "Admin",
-      "assignedRoles": [
-        "Admin",
-        "Moderator",
-        "Parent"
-      ]
-    },
-    {
-      "id": "admin-alison-haney",
-      "email": "alisonhaney35@gmail.com",
-      "name": "Alison Haney",
-      "role": "Admin",
-      "assignedRoles": [
-        "Admin",
-        "Moderator",
-        "Parent"
-      ]
-    },
-    {
       "id": "admin-allison-haynie",
       "email": "allison.haynie35@gmail.com",
       "name": "Allison Haynie",
